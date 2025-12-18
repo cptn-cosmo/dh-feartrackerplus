@@ -3,6 +3,10 @@ const MODULE_ID = 'dh-feartrackerplus';
 Hooks.once('init', () => {
     console.log(`${MODULE_ID} | Initializing Daggerheart Fear Tracker Plus`);
 
+    const refreshFearTracker = () => {
+        if (ui.resources?.render) ui.resources.render();
+    };
+
     // Register Settings
     game.settings.register(MODULE_ID, 'iconType', {
         name: 'Icon Source',
@@ -15,10 +19,7 @@ Hooks.once('init', () => {
             'custom': 'Custom FontAwesome Class'
         },
         default: 'preset',
-        onChange: () => {
-            // Force re-render if possible, or let the hook handle it on next update
-            if (ui.apps) Object.values(ui.apps).forEach(app => app.render?.());
-        }
+        onChange: refreshFearTracker
     });
 
     game.settings.register(MODULE_ID, 'presetIcon', {
@@ -40,7 +41,7 @@ Hooks.once('init', () => {
             'fa-radiation': 'Radiation'
         },
         default: 'fa-skull',
-        onChange: () => { if (ui.apps) Object.values(ui.apps).forEach(app => app.render?.()); }
+        onChange: refreshFearTracker
     });
 
     game.settings.register(MODULE_ID, 'customIcon', {
@@ -50,7 +51,7 @@ Hooks.once('init', () => {
         config: true,
         type: String,
         default: 'fa-solid fa-dragon',
-        onChange: () => { if (ui.apps) Object.values(ui.apps).forEach(app => app.render?.()); }
+        onChange: refreshFearTracker
     });
 
     game.settings.register(MODULE_ID, 'fullColor', {
@@ -60,7 +61,7 @@ Hooks.once('init', () => {
         config: true,
         type: String,
         default: '#ff0000',
-        onChange: () => { if (ui.apps) Object.values(ui.apps).forEach(app => app.render?.()); }
+        onChange: refreshFearTracker
     });
 
     game.settings.register(MODULE_ID, 'emptyColor', {
@@ -70,7 +71,7 @@ Hooks.once('init', () => {
         config: true,
         type: String,
         default: '#444444',
-        onChange: () => { if (ui.apps) Object.values(ui.apps).forEach(app => app.render?.()); }
+        onChange: refreshFearTracker
     });
 });
 
