@@ -54,6 +54,23 @@ Hooks.once('init', () => {
         onChange: refreshFearTracker
     });
 
+    game.settings.register(MODULE_ID, 'colorTheme', {
+        name: 'Color Theme',
+        hint: 'Choose a color preset or Custom to set your own colors below.',
+        scope: 'client',
+        config: true,
+        type: String,
+        choices: {
+            'custom': 'Custom',
+            'golden-hour': 'Golden Hour (Orange to Purple)',
+            'blood-moon': 'Blood Moon (Red Gradient)',
+            'ethereal': 'Ethereal (Cyan to Blue)',
+            'toxic': 'Toxic (Green to Yellow)'
+        },
+        default: 'custom',
+        onChange: refreshFearTracker
+    });
+
     game.settings.register(MODULE_ID, 'fullColor', {
         name: 'Full Icon Color',
         hint: 'CSS color string or gradient (e.g., "#ff0000" or "linear-gradient(to top, red, yellow)").',
@@ -102,8 +119,24 @@ function injectFearCustomization(html) {
     const iconType = game.settings.get(MODULE_ID, 'iconType');
     const presetIcon = game.settings.get(MODULE_ID, 'presetIcon');
     const customIcon = game.settings.get(MODULE_ID, 'customIcon');
-    const fullColor = game.settings.get(MODULE_ID, 'fullColor');
-    const emptyColor = game.settings.get(MODULE_ID, 'emptyColor');
+    const colorTheme = game.settings.get(MODULE_ID, 'colorTheme');
+    let fullColor = game.settings.get(MODULE_ID, 'fullColor');
+    let emptyColor = game.settings.get(MODULE_ID, 'emptyColor');
+
+    // Apply Theme Colors
+    if (colorTheme !== 'custom') {
+        const themes = {
+            'golden-hour': { full: 'linear-gradient(to right, #FFC107, #512DA8)', empty: '#2e1c4a' },
+            'blood-moon': { full: 'linear-gradient(to top, #5c0000, #ff0000)', empty: '#2a0000' },
+            'ethereal': { full: 'linear-gradient(to right, #00FFFF, #0000FF)', empty: '#002a33' },
+            'toxic': { full: 'linear-gradient(to bottom, #00FF00, #FFFF00)', empty: '#003300' }
+        };
+        const theme = themes[colorTheme];
+        if (theme) {
+            fullColor = theme.full;
+            emptyColor = theme.empty;
+        }
+    }
 
     // Determine Icon Class
     let iconClass = 'fa-skull'; // fallback
