@@ -62,7 +62,7 @@ Hooks.once('init', () => {
         type: String,
         choices: {
             'custom': 'Custom',
-            'golden-hour': 'Golden Hour (Orange to Purple)',
+            'hope-fear': 'Hope & Fear (Orange to Purple)',
             'blood-moon': 'Blood Moon (Red Gradient)',
             'ethereal': 'Ethereal (Cyan to Blue)',
             'toxic': 'Toxic (Green to Yellow)'
@@ -73,7 +73,7 @@ Hooks.once('init', () => {
 
     game.settings.register(MODULE_ID, 'fullColor', {
         name: 'Full Icon Color',
-        hint: 'CSS color string or gradient (e.g., "#ff0000" or "linear-gradient(to top, red, yellow)").',
+        hint: 'CSS color string or gradient (Used if Theme is Custom).',
         scope: 'client',
         config: true,
         type: String,
@@ -83,13 +83,54 @@ Hooks.once('init', () => {
 
     game.settings.register(MODULE_ID, 'emptyColor', {
         name: 'Empty Icon Color',
-        hint: 'CSS color string for inactive icons.',
+        hint: 'CSS color string for inactive icons (Used if Theme is Custom).',
         scope: 'client',
         config: true,
         type: String,
         default: '#444444',
         onChange: refreshFearTracker
     });
+});
+
+/**
+ * Handle Settings UI Visibility
+ */
+Hooks.on('renderSettingsConfig', (app, html, data) => {
+    const iconTypeSelect = html.find(`select[name="${MODULE_ID}.iconType"]`);
+    const themeSelect = html.find(`select[name="${MODULE_ID}.colorTheme"]`);
+
+    const updateVisibility = () => {
+        const iconType = iconTypeSelect.val();
+        const theme = themeSelect.val();
+
+        // Icon Inputs
+        const presetGroup = html.find(`select[name="${MODULE_ID}.presetIcon"]`).closest('.form-group');
+        const customIconGroup = html.find(`input[name="${MODULE_ID}.customIcon"]`).closest('.form-group');
+
+        if (iconType === 'preset') {
+            presetGroup.show();
+            customIconGroup.hide();
+        } else {
+            presetGroup.hide();
+            customIconGroup.show();
+        }
+
+        // Color Inputs
+        const fullColorGroup = html.find(`input[name="${MODULE_ID}.fullColor"]`).closest('.form-group');
+        const emptyColorGroup = html.find(`input[name="${MODULE_ID}.emptyColor"]`).closest('.form-group');
+
+        if (theme === 'custom') {
+            fullColorGroup.show();
+            emptyColorGroup.show();
+        } else {
+            fullColorGroup.hide();
+            emptyColorGroup.hide();
+        }
+    };
+
+    iconTypeSelect.on('change', updateVisibility);
+    themeSelect.on('change', updateVisibility);
+    updateVisibility();
 });
 
 /**
@@ -126,7 +167,7 @@ function injectFearCustomization(html) {
     // Apply Theme Colors
     if (colorTheme !== 'custom') {
         const themes = {
-            'golden-hour': { full: 'linear-gradient(to right, #FFC107, #512DA8)', empty: '#2e1c4a' },
+            'hope-fear': { full: 'linear-gradient(to right, #FFC107, #512DA8)', empty: '#2e1c4a' },
             'blood-moon': { full: 'linear-gradient(to top, #5c0000, #ff0000)', empty: '#2a0000' },
             'ethereal': { full: 'linear-gradient(to right, #00FFFF, #0000FF)', empty: '#002a33' },
             'toxic': { full: 'linear-gradient(to bottom, #00FF00, #FFFF00)', empty: '#003300' }
@@ -138,6 +179,26 @@ function injectFearCustomization(html) {
         }
     }
 
+    // Apply Container Gradient if needed (for continuous gradient)
+    // If it's a gradient, we apply it to the container to span across.
+    const isGradient = fullColor.toLowerCase().includes('gradient');
+
+    if (isGradient) {
+        fearContainer.style.background = fullColor;
+        fearContainer.style.webkitBackgroundClip = 'text';
+        fearContainer.style.backgroundClip = 'text';
+        fearContainer.style.webkitTextFillColor = 'transparent';
+        fearContainer.style.color = 'transparent';
+        fearContainer.classList.add('fear-tracker-plus-container-gradient');
+    } else {
+        fearContainer.style.background = 'none';
+        fearContainer.style.webkitBackgroundClip = 'initial';
+        fearContainer.style.backgroundClip = 'initial';
+        fearContainer.style.webkitTextFillColor = 'initial';
+        fearContainer.style.color = 'initial';
+        fearContainer.classList.remove('fear-tracker-plus-container-gradient');
+    }
+
     // Determine Icon Class
     let iconClass = 'fa-skull'; // fallback
     if (iconType === 'preset') {
@@ -146,9 +207,6 @@ function injectFearCustomization(html) {
         iconClass = customIcon;
     }
 
-    // Find all icons
-    // The system uses: <i class="fas fa-skull ...">
-    // We target them. Note: the system might have added 'inactive' class.
     const icons = fearContainer.querySelectorAll('i');
 
     icons.forEach(icon => {
@@ -175,19 +233,25 @@ function injectFearCustomization(html) {
 
         // Check state
         const isInactive = icon.classList.contains('inactive');
-        const targetColor = isInactive ? emptyColor : fullColor;
-
-        // Apply Color
-        const isGradient = targetColor.toLowerCase().includes('gradient');
 
         if (isGradient) {
-            icon.classList.add('fear-tracker-plus-gradient');
-            icon.style.background = targetColor;
-            icon.style.color = 'transparent'; // Needed for background-clip: text
+            if (isInactive) {
+                // Inactive icons should NOT show the gradient.
+                // We force them to emptyColor by resetting clip behavior via webkitTextFillColor
+                icon.style.webkitTextFillColor = emptyColor;
+                icon.style.color = emptyColor;
+                icon.style.background = 'none';
+            } else {
+                // Active icons: Transparent to show parent background.
+                icon.style.webkitTextFillColor = 'transparent';
+                icon.style.color = 'transparent';
+                icon.style.background = 'none';
+            }
         } else {
-            icon.classList.remove('fear-tracker-plus-gradient');
+            // Solid Colors
+            icon.style.webkitTextFillColor = 'initial';
             icon.style.background = 'none';
-            icon.style.color = targetColor;
+            icon.style.color = isInactive ? emptyColor : fullColor;
         }
     });
 }
