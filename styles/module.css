@@ -1,0 +1,11 @@
+.fear-tracker-plus-gradient {
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block; /* Required for gradient text */
+}
+
+/* Ensure the icon keeps its size and doesn't collapse */
+#resource-fear i.fear-tracker-plus-custom {
+    transition: all 0.5s ease;
+}
