@@ -4,7 +4,7 @@ Hooks.once('init', () => {
     console.log(`${MODULE_ID} | Initializing Daggerheart Fear Tracker Plus`);
 
     const refreshFearTracker = () => {
-        if (ui.resources?.render) ui.resources.render();
+        if (ui.resources?.render) ui.resources.render({ force: true });
     };
 
     // Register Settings
