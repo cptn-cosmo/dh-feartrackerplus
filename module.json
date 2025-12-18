@@ -1,0 +1,34 @@
+{
+    "id": "dh-feartrackerplus",
+    "title": "Daggerheart Fear Tracker Plus",
+    "version": "1.0.0",
+    "compatibility": {
+        "minimum": "13",
+        "verified": "13"
+    },
+    "authors": [
+        {
+            "name": "CPTN Cosmo",
+            "flags": {}
+        }
+    ],
+    "relationships": {
+        "systems": [
+            {
+                "id": "daggerheart",
+                "type": "system",
+                "compatibility": {}
+            }
+        ]
+    },
+    "esmodules": [
+        "scripts/module.js"
+    ],
+    "styles": [
+        "styles/module.css"
+    ],
+    "url": "https://github.com/check-manifest",
+    "manifest": "https://github.com/check-manifest/module.json",
+    "download": "https://github.com/check-manifest/archive/master.zip",
+    "description": "Customizes the Fear Tracker for Daggerheart."
+}
