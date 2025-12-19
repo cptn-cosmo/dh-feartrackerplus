@@ -67,20 +67,7 @@ Hooks.once('init', () => {
         onChange: refreshFearTracker
     });
 
-    game.settings.register(MODULE_ID, 'trackerScale', {
-        name: 'Tracker Scale',
-        hint: 'Resize the fear tracker (0.25x to 2.0x).',
-        scope: 'client',
-        config: true,
-        type: Number,
-        range: {
-            min: 0.25,
-            max: 2.0,
-            step: 0.05
-        },
-        default: 1.0,
-        onChange: refreshFearTracker
-    });
+
 
     // Removed trackerLocked setting as requested
 
@@ -119,6 +106,21 @@ Hooks.once('init', () => {
         config: true,
         type: String,
         default: '#444444',
+        onChange: refreshFearTracker
+    });
+
+    game.settings.register(MODULE_ID, 'trackerScale', {
+        name: 'Tracker Scale',
+        hint: 'Resize the fear tracker (0.25x to 2.0x).',
+        scope: 'client',
+        config: true,
+        type: Number,
+        range: {
+            min: 0.25,
+            max: 2.0,
+            step: 0.05
+        },
+        default: 1.0,
         onChange: refreshFearTracker
     });
 });
