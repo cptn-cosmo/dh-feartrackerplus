@@ -97,16 +97,17 @@ Hooks.once('init', () => {
  * Handle Settings UI Visibility
  */
 Hooks.on('renderSettingsConfig', (app, html, data) => {
-    const iconTypeSelect = html.find(`select[name="${MODULE_ID}.iconType"]`);
-    const themeSelect = html.find(`select[name="${MODULE_ID}.colorTheme"]`);
+    const $html = $(html);
+    const iconTypeSelect = $html.find(`select[name="${MODULE_ID}.iconType"]`);
+    const themeSelect = $html.find(`select[name="${MODULE_ID}.colorTheme"]`);
 
     const updateVisibility = () => {
         const iconType = iconTypeSelect.val();
         const theme = themeSelect.val();
 
         // Icon Inputs
-        const presetGroup = html.find(`select[name="${MODULE_ID}.presetIcon"]`).closest('.form-group');
-        const customIconGroup = html.find(`input[name="${MODULE_ID}.customIcon"]`).closest('.form-group');
+        const presetGroup = $html.find(`select[name="${MODULE_ID}.presetIcon"]`).closest('.form-group');
+        const customIconGroup = $html.find(`input[name="${MODULE_ID}.customIcon"]`).closest('.form-group');
 
         if (iconType === 'preset') {
             presetGroup.show();
@@ -117,8 +118,8 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
         }
 
         // Color Inputs
-        const fullColorGroup = html.find(`input[name="${MODULE_ID}.fullColor"]`).closest('.form-group');
-        const emptyColorGroup = html.find(`input[name="${MODULE_ID}.emptyColor"]`).closest('.form-group');
+        const fullColorGroup = $html.find(`input[name="${MODULE_ID}.fullColor"]`).closest('.form-group');
+        const emptyColorGroup = $html.find(`input[name="${MODULE_ID}.emptyColor"]`).closest('.form-group');
 
         if (theme === 'custom') {
             fullColorGroup.show();
