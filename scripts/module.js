@@ -91,21 +91,11 @@ Hooks.once('init', () => {
 
     game.settings.register(MODULE_ID, 'fullColor', {
         name: 'Full Icon Color',
-        hint: 'CSS color string or gradient (Used if Theme is Custom).',
+        hint: 'CSS color string or gradient (e.g., "linear-gradient(90deg, red, blue)"). Used if Theme is Custom.',
         scope: 'client',
         config: true,
         type: String,
         default: '#ff0000',
-        onChange: refreshFearTracker
-    });
-
-    game.settings.register(MODULE_ID, 'emptyColor', {
-        name: 'Empty Icon Color',
-        hint: 'CSS color string for inactive icons (Used if Theme is Custom).',
-        scope: 'client',
-        config: true,
-        type: String,
-        default: '#444444',
         onChange: refreshFearTracker
     });
 
@@ -186,15 +176,12 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
 
             // Color Inputs
             const fullColorGroup = findGroup('fullColor');
-            const emptyColorGroup = findGroup('emptyColor');
 
-            if (fullColorGroup && emptyColorGroup) {
+            if (fullColorGroup) {
                 if (theme === 'custom') {
                     fullColorGroup.show();
-                    emptyColorGroup.show();
                 } else {
                     fullColorGroup.hide();
-                    emptyColorGroup.hide();
                 }
             }
 
@@ -349,7 +336,7 @@ function injectFearCustomization(html) {
     const customIcon = game.settings.get(MODULE_ID, 'customIcon');
     const colorTheme = game.settings.get(MODULE_ID, 'colorTheme');
     let fullColor = game.settings.get(MODULE_ID, 'fullColor');
-    let emptyColor = game.settings.get(MODULE_ID, 'emptyColor');
+    let emptyColor = '#444444'; // Default for custom
 
     // Theme Data for Interpolation
     let themeStart = null;
@@ -446,16 +433,42 @@ function injectFearCustomization(html) {
         if (colorTheme !== 'foundryborne') {
             if (isInactive) {
                 icon.style.background = emptyColor;
+                icon.style.backgroundSize = 'cover'; // Reset size for empty
+                icon.style.backgroundPosition = 'center'; // Reset pos for empty
             } else {
                 // Active
                 if (themeStart && themeEnd && totalIcons > 1) {
-                    // Interpolate
+                    // Interpolate (Preset Themes)
                     const factor = index / (totalIcons - 1);
                     const color = interpolateColor(themeStart, themeEnd, factor);
                     icon.style.background = color;
+                    icon.style.backgroundSize = 'cover';
+                    icon.style.backgroundPosition = 'center';
                 } else {
-                    // Custom or Single Color
-                    icon.style.background = fullColor;
+                    // Custom Theme
+                    // Check if fullColor appears to be a gradient
+                    const isGradient = fullColor.includes('gradient');
+
+                    if (isGradient && totalIcons > 0) {
+                        icon.style.background = fullColor;
+                        icon.style.backgroundSize = `${totalIcons * 100}% 100%`;
+
+                        // Calculate position
+                        // Leftmost (index 0) = 0%
+                        // Rightmost (index total-1) = 100%
+                        let pos = 0;
+                        if (totalIcons > 1) {
+                            pos = (index / (totalIcons - 1)) * 100;
+                        }
+
+                        icon.style.backgroundPosition = `${pos}% 0%`;
+                        icon.style.backgroundAttachment = 'local'; // Ensure it sticks to the specific element config if needed, though default is usually fine.
+                    } else {
+                        // Solid Color
+                        icon.style.background = fullColor;
+                        icon.style.backgroundSize = 'cover';
+                        icon.style.backgroundPosition = 'center';
+                    }
                 }
             }
         }
@@ -469,9 +482,6 @@ function injectFearCustomization(html) {
     const animateMax = game.settings.get(MODULE_ID, 'maxFearAnimation');
     if (animateMax) {
         // Check if all available icons are active
-        // Icons are "active" if they don't have the 'inactive' class.
-        // Wait, looking at the code above, 'inactive' class checks are used.
-        // Let's count totals.
         const activeIcons = Array.from(icons).filter(icon => !icon.classList.contains('inactive')).length;
 
         // If totalIcons > 0 and activeIcons === totalIcons, apply animation
