@@ -128,85 +128,101 @@ Hooks.once('init', () => {
  */
 Hooks.on('renderSettingsConfig', (app, html, data) => {
     const $html = $(html);
+    // Use a more robust selector for the select elements, in case implicit binding changes
     const iconTypeSelect = $html.find(`select[name="${MODULE_ID}.iconType"]`);
     const themeSelect = $html.find(`select[name="${MODULE_ID}.colorTheme"]`);
 
-    const updateVisibility = () => {
-        const iconType = iconTypeSelect.val();
-        const theme = themeSelect.val();
+    // If we can't find the main selects, we can't do anything (likely custom settings window or other issue)
+    if (!iconTypeSelect.length || !themeSelect.length) return;
 
-        // Icon Inputs
-        // Standard data-setting-id
-        let presetGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.presetIcon"]`);
-        let customIconGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.customIcon"]`);
-        let customSvgGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.customSvgPath"]`);
+    {
+        // Helper to find setting group
+        const findGroup = (key) => {
+            // Try data-setting-id first (standard in V10/V11+)
+            let group = $html.find(`.form-group[data-setting-id="${MODULE_ID}.${key}"]`);
+            if (group.length) return group;
 
-        // Fallback: Find input by name and traverse to form-group
-        if (!presetGroup.length) presetGroup = $html.find(`select[name="${MODULE_ID}.presetIcon"]`).closest('.form-group');
-        if (!customIconGroup.length) customIconGroup = $html.find(`input[name="${MODULE_ID}.customIcon"]`).closest('.form-group');
+            // Fallback: Find input/select by name and go up to form-group
+            const input = $html.find(`[name="${MODULE_ID}.${key}"]`);
+            if (input.length) return input.closest('.form-group');
 
-        // SVG Fallback: Ensure we find it separately because it might be wrapped differently
-        if (!customSvgGroup.length) {
-            const svgInput = $html.find(`input[name="${MODULE_ID}.customSvgPath"]`);
-            // Traverse up to find the closest form-group
-            customSvgGroup = svgInput.closest('.form-group');
-        }
+            return null;
+        };
 
-        // Reset
-        presetGroup.hide();
-        customIconGroup.hide();
-        customSvgGroup.hide();
+        const updateVisibility = () => {
+            const iconType = iconTypeSelect.val();
+            const theme = themeSelect.val();
 
-        if (iconType === 'preset') {
-            presetGroup.show();
-        } else if (iconType === 'custom') {
-            customIconGroup.show();
-        } else if (iconType === 'custom-svg') {
-            customSvgGroup.show();
-        }
+            // Locate Groups
+            const presetGroup = findGroup('presetIcon');
+            const customIconGroup = findGroup('customIcon');
+            const customSvgGroup = findGroup('customSvgPath');
 
-        // Color Inputs
-        let fullColorGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.fullColor"]`);
-        let emptyColorGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.emptyColor"]`);
-        let scaleGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.trackerScale"]`);
+            // Reset Visibility
+            if (presetGroup) presetGroup.hide();
+            if (customIconGroup) customIconGroup.hide();
+            if (customSvgGroup) customSvgGroup.hide();
 
-        if (!fullColorGroup.length) fullColorGroup = $html.find(`input[name="${MODULE_ID}.fullColor"]`).closest('.form-group');
-        if (!emptyColorGroup.length) emptyColorGroup = $html.find(`input[name="${MODULE_ID}.emptyColor"]`).closest('.form-group');
-        if (!scaleGroup.length) scaleGroup = $html.find(`input[name="${MODULE_ID}.trackerScale"]`).closest('.form-group');
+            // Apply Logic
+            if (iconType === 'preset' && presetGroup) {
+                presetGroup.show();
+            } else if (iconType === 'custom' && customIconGroup) {
+                customIconGroup.show();
+            } else if (iconType === 'custom-svg' && customSvgGroup) {
+                customSvgGroup.show();
+            }
 
-        if (theme === 'custom') {
-            fullColorGroup.show();
-            emptyColorGroup.show();
-        } else {
-            fullColorGroup.hide();
-            emptyColorGroup.hide();
-        }
+            // Color Inputs
+            const fullColorGroup = findGroup('fullColor');
+            const emptyColorGroup = findGroup('emptyColor');
 
-        // Inject Scale Reset Button if not present
-        if (scaleGroup.length && !scaleGroup.find('.scale-reset-btn').length) {
-            const input = scaleGroup.find('input[type="range"]');
-            const rangeValue = scaleGroup.find('.range-value');
-
-            if (input.length) {
-                const resetBtn = $(`<button type="button" class="scale-reset-btn" title="Reset to 1.0x" style="flex: 0 0 30px; margin-left: 5px;"><i class="fas fa-undo"></i></button>`);
-                resetBtn.on('click', () => {
-                    input.val(1.0).trigger('change');
-                    if (rangeValue.length) rangeValue.text("1.0");
-                });
-
-                // Append after the range value display usually found in Foundry sliders
-                if (rangeValue.length) {
-                    rangeValue.after(resetBtn);
+            if (fullColorGroup && emptyColorGroup) {
+                if (theme === 'custom') {
+                    fullColorGroup.show();
+                    emptyColorGroup.show();
                 } else {
-                    input.after(resetBtn);
+                    fullColorGroup.hide();
+                    emptyColorGroup.hide();
                 }
             }
-        }
-    };
 
-    iconTypeSelect.on('change', updateVisibility);
-    themeSelect.on('change', updateVisibility);
-    updateVisibility();
+            // Tracker Scale Reset Button
+            const scaleGroup = findGroup('trackerScale');
+            if (scaleGroup && !scaleGroup.find('.scale-reset-btn').length) {
+                const input = scaleGroup.find('input[type="range"]'); // Try range first
+                const numberInput = scaleGroup.find(`input[name="${MODULE_ID}.trackerScale"]`); // Fallback/Number input
+                const rangeValue = scaleGroup.find('.range-value');
+
+                // We want to control the input that actually stores the value
+                const targetInput = numberInput.length ? numberInput : input;
+
+                if (targetInput.length) {
+                    const resetBtn = $(`<button type="button" class="scale-reset-btn" title="Reset to 1.0x" style="flex: 0 0 30px; margin-left: 5px;"><i class="fas fa-undo"></i></button>`);
+                    
+                    resetBtn.on('click', () => {
+                        targetInput.val(1.0).trigger('change');
+                        // Retrieve the range input again to update it visually if we targeted the number input
+                        if (input.length) input.val(1.0); 
+                        if (rangeValue.length) rangeValue.text("1.0");
+                    });
+
+                    // Append logic
+                    const container = scaleGroup.find('.form-fields');
+                    if (container.length) {
+                        container.append(resetBtn);
+                    } else if (rangeValue.length) {
+                        rangeValue.after(resetBtn);
+                    } else {
+                        targetInput.after(resetBtn);
+                    }
+                }
+            }
+        };
+
+        iconTypeSelect.on('change', updateVisibility);
+        themeSelect.on('change', updateVisibility);
+        updateVisibility();
+    }
 });
 
 /**
