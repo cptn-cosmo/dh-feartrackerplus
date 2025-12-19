@@ -40,7 +40,7 @@ Hooks.once('init', () => {
             'fas fa-cloud-meatball': 'Cloud Meatball',
             'fas fa-biohazard': 'Biohazard',
             'fas fa-radiation': 'Radiation',
-            'systems/daggerheart/assets/icons/documents/actors/capybara.svg': 'Capybara (Foundry)'
+            'systems/daggerheart/assets/icons/documents/actors/capybara.svg': 'Capybara (Foundryborne)'
         },
         default: 'fas fa-skull',
         onChange: refreshFearTracker
@@ -242,8 +242,6 @@ function injectFearCustomization(html) {
     // ---------------------------------------------------------
     // Window Lock Button Injection
     // ---------------------------------------------------------
-    // Find the window element (parent of content)
-    // ApplicationV2 structure: window > window-content > html
     const windowApp = container.closest('.window-app');
     if (windowApp) {
         const header = windowApp.querySelector('.window-header');
@@ -253,7 +251,7 @@ function injectFearCustomization(html) {
                 const lockBtn = document.createElement('a');
                 lockBtn.classList.add('control', 'fear-tracker-lock');
                 lockBtn.setAttribute('aria-label', 'Lock Position');
-                // Insert before close button (usually last)
+                // Insert before close button
                 const closeBtn = header.querySelector('.control.close');
                 if (closeBtn) {
                     header.insertBefore(lockBtn, closeBtn);
@@ -279,18 +277,26 @@ function injectFearCustomization(html) {
             }
 
             // Handle Drag Disabling
-            // We target the window-title usually, or the drag handler
-            const windowTitle = header.querySelector('.window-title');
-            if (windowTitle) {
-                if (isLocked) {
-                    windowTitle.style.pointerEvents = 'none'; // Disables drag start
-                    windowTitle.style.cursor = 'default';
-                    header.classList.add('locked');
-                } else {
-                    windowTitle.style.pointerEvents = 'all';
-                    windowTitle.style.cursor = 'grab';
-                    header.classList.remove('locked');
-                }
+            if (isLocked) {
+                header.classList.add('locked');
+                header.style.pointerEvents = 'none'; // CRITICAL: This stops the drag
+
+                // But we must allow clicks on our buttons (Close, Lock, etc)
+                const controls = header.querySelectorAll('.control');
+                controls.forEach(c => c.style.pointerEvents = 'auto');
+
+                // Visual feedback
+                const windowTitle = header.querySelector('.window-title');
+                if (windowTitle) windowTitle.style.cursor = 'default';
+
+            } else {
+                header.classList.remove('locked');
+                header.style.pointerEvents = '';
+                const controls = header.querySelectorAll('.control');
+                controls.forEach(c => c.style.pointerEvents = '');
+
+                const windowTitle = header.querySelector('.window-title');
+                if (windowTitle) windowTitle.style.cursor = 'grab';
             }
         }
     }
@@ -310,9 +316,8 @@ function injectFearCustomization(html) {
     let themeStart = null;
     let themeEnd = null;
 
-    if (colorTheme !== 'custom') {
+    if (colorTheme !== 'custom' && colorTheme !== 'foundryborne') {
         const themes = {
-            'foundryborne': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
             'hope-fear': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
             'blood-moon': { start: '#5c0000', end: '#ff0000', empty: '#2a0000' },
             'ethereal': { start: '#00FFFF', end: '#0000FF', empty: '#002a33' },
@@ -323,7 +328,6 @@ function injectFearCustomization(html) {
             themeStart = theme.start;
             themeEnd = theme.end;
             emptyColor = theme.empty;
-            // Fallback fullColor for non-interpolation uses if any
             fullColor = theme.start;
         }
     }
@@ -351,6 +355,9 @@ function injectFearCustomization(html) {
     const icons = fearContainer.querySelectorAll('i');
     const totalIcons = icons.length;
 
+    // Use System Colors if Foundryborne
+    const useSystemColors = (colorTheme === 'foundryborne');
+
     icons.forEach((icon, index) => {
         // 1. Reset Icon State
         // Remove common FA prefixes just in case
@@ -367,45 +374,65 @@ function injectFearCustomization(html) {
             const img = document.createElement('img');
             img.src = iconClass;
             img.classList.add('fear-tracker-icon');
-            img.style.width = '60%'; // Appropriate size within the bead
+            img.style.width = '60%';
             img.style.height = '60%';
-            img.style.filter = 'brightness(0) invert(1)'; // Make it white
+
+            // If Foundryborne, we probably want to revert to a state where it looks "native".
+            // Since svgs are inserted, default system CSS won't target them.
+            // We'll keep them white for visibility, unless the system hue-rotate handles it.
+            // Let's assume white is safer.
+            img.style.filter = 'brightness(0) invert(1)';
             img.style.border = 'none';
-            img.style.pointerEvents = 'none'; // Click through to parent if needed
+            img.style.pointerEvents = 'none';
 
             icon.appendChild(img);
         } else {
             // It's a FontAwesome Class
             const newClasses = iconClass.split(' ').filter(c => c.trim() !== '');
             icon.classList.add(...newClasses, 'fear-tracker-plus-custom');
-            icon.style.color = '#ffffff'; // Icons are white
+
+            if (!useSystemColors) {
+                icon.style.color = '#ffffff'; // Force white only if NOT using system colors
+            } else {
+                icon.style.color = ''; // Revert to stylesheet default
+            }
         }
 
-        // 3. Remove System Styling
-        icon.style.filter = 'none'; // Strips hue-rotate AND system grayscale for inactive
-        icon.style.opacity = '1'; // Reset opacity
+        if (useSystemColors) {
+            // Restore System Styling
+            icon.style.filter = ''; // Allow system CSS hue-rotate
+            icon.style.opacity = ''; // Allow system CSS opacity
+            icon.style.background = ''; // Use system CSS background
 
-        // Reset container-style gradient hacks
-        icon.style.webkitTextFillColor = 'initial';
-        icon.style.backgroundClip = 'border-box';
-        icon.style.webkitBackgroundClip = 'border-box';
-
-        // 4. Handle Background Color
-        const isInactive = icon.classList.contains('inactive');
-
-        if (isInactive) {
-            icon.style.background = emptyColor;
+            // Clean up our legacy overrides
+            icon.style.webkitTextFillColor = '';
+            icon.style.backgroundClip = '';
+            icon.style.webkitBackgroundClip = '';
         } else {
-            // Active
-            if (themeStart && themeEnd && totalIcons > 1) {
-                // Interpolate
-                const factor = index / (totalIcons - 1);
-                const color = interpolateColor(themeStart, themeEnd, factor);
-                icon.style.background = color;
+            // 3. Remove System Styling (Module Overrides)
+            icon.style.filter = 'none';
+            icon.style.opacity = '1';
+
+            icon.style.webkitTextFillColor = 'initial';
+            icon.style.backgroundClip = 'border-box';
+            icon.style.webkitBackgroundClip = 'border-box';
+
+            // 4. Handle Background Color
+            const isInactive = icon.classList.contains('inactive');
+
+            if (isInactive) {
+                icon.style.background = emptyColor;
             } else {
-                // Custom or Single Color
-                // If it's a gradient string (Custom mode), use it as background
-                icon.style.background = fullColor;
+                // Active
+                if (themeStart && themeEnd && totalIcons > 1) {
+                    // Interpolate
+                    const factor = index / (totalIcons - 1);
+                    const color = interpolateColor(themeStart, themeEnd, factor);
+                    icon.style.background = color;
+                } else {
+                    // Custom or Single Color
+                    icon.style.background = fullColor;
+                }
             }
         }
     });
