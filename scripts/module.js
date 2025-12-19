@@ -200,17 +200,23 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
                     const resetBtn = $(`<button type="button" class="scale-reset-btn" title="Reset to 1.0x" style="flex: 0 0 30px; margin-left: 5px;"><i class="fas fa-undo"></i></button>`);
 
                     resetBtn.on('click', () => {
-                        // 1. Update Number Input (if exists) - this is usually the one with the name attribute
+                        // Use Native DOM events for maximum compatibility with Foundry
+                        // 1. Update Number Input (if exists)
                         if (numberInput.length) {
-                            numberInput.val(1.0).trigger('change');
+                            const nativeNum = numberInput[0];
+                            nativeNum.value = 1.0;
+                            nativeNum.dispatchEvent(new Event('change', { bubbles: true }));
                         }
 
-                        // 2. Update Range Input - this triggers the visual slider movement
+                        // 2. Update Range Input
                         if (input.length) {
-                            input.val(1.0).trigger('input').trigger('change');
+                            const nativeRange = input[0];
+                            nativeRange.value = 1.0;
+                            nativeRange.dispatchEvent(new Event('input', { bubbles: true }));
+                            nativeRange.dispatchEvent(new Event('change', { bubbles: true }));
                         }
 
-                        // 3. Manually update the text display just in case
+                        // 3. Fallback visual update
                         if (rangeValue.length) rangeValue.text("1.0");
                     });
 
