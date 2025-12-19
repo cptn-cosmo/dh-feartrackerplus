@@ -123,6 +123,16 @@ Hooks.once('init', () => {
         default: 1.0,
         onChange: refreshFearTracker
     });
+
+    game.settings.register(MODULE_ID, 'maxFearAnimation', {
+        name: 'Max Fear Animation',
+        hint: 'animate the fear tracker when it reaches maximum value.',
+        scope: 'client',
+        config: true,
+        type: Boolean,
+        default: true,
+        onChange: refreshFearTracker
+    });
 });
 
 /**
@@ -454,4 +464,27 @@ function injectFearCustomization(html) {
     // Remove legacy container class if present
     fearContainer.classList.remove('fear-tracker-plus-container-gradient');
     fearContainer.style.background = 'none';
+
+    // Max Fear Animation
+    const animateMax = game.settings.get(MODULE_ID, 'maxFearAnimation');
+    if (animateMax) {
+        // Check if all available icons are active
+        // Icons are "active" if they don't have the 'inactive' class.
+        // Wait, looking at the code above, 'inactive' class checks are used.
+        // Let's count totals.
+        const activeIcons = Array.from(icons).filter(icon => !icon.classList.contains('inactive')).length;
+
+        // If totalIcons > 0 and activeIcons === totalIcons, apply animation
+        if (totalIcons > 0 && activeIcons === totalIcons) {
+            icons.forEach(icon => {
+                icon.classList.add('fear-tracker-plus-animate');
+            });
+        } else {
+            icons.forEach(icon => {
+                icon.classList.remove('fear-tracker-plus-animate');
+            });
+        }
+    } else {
+        icons.forEach(icon => icon.classList.remove('fear-tracker-plus-animate'));
+    }
 }
