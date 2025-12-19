@@ -99,6 +99,32 @@ Hooks.once('init', () => {
         onChange: refreshFearTracker
     });
 
+    // --- New Settings for Icon Color/Shape ---
+    game.settings.register(MODULE_ID, 'iconShape', {
+        name: 'Icon Shape',
+        hint: 'Select the background shape for the icons.',
+        scope: 'client',
+        config: true,
+        type: String,
+        choices: {
+            'circle': 'Circle',
+            'rounded': 'Rounded Square',
+            'square': 'Square'
+        },
+        default: 'circle',
+        onChange: refreshFearTracker
+    });
+
+    game.settings.register(MODULE_ID, 'iconColor', {
+        name: 'Icon Color',
+        hint: 'Custom color for the icon glyphs (Hex or Gradient). Default is white.',
+        scope: 'client',
+        config: true,
+        type: String,
+        default: '#ffffff',
+        onChange: refreshFearTracker
+    });
+
     game.settings.register(MODULE_ID, 'trackerScale', {
         name: 'Tracker Scale',
         hint: 'Resize the fear tracker (0.25x to 2.0x).',
@@ -230,6 +256,24 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
                     }
                 }
             }
+
+
+            // Icon Color Reset Button
+            const iconColorGroup = findGroup('iconColor');
+            if (iconColorGroup && !iconColorGroup.find('.icon-color-reset-btn').length) {
+                const input = iconColorGroup.find(`input[name="${MODULE_ID}.iconColor"]`);
+
+                if (input.length) {
+                    const resetBtn = $(`<button type="button" class="icon-color-reset-btn" title="Reset to White" style="flex: 0 0 30px; margin-left: 5px;"><i class="fas fa-undo"></i></button>`);
+
+                    resetBtn.on('click', () => {
+                        input.val('#ffffff');
+                        input.trigger('change');
+                    });
+
+                    input.after(resetBtn);
+                }
+            }
         };
 
         iconTypeSelect.on('change', updateVisibility);
@@ -335,6 +379,9 @@ function injectFearCustomization(html) {
     const presetIcon = game.settings.get(MODULE_ID, 'presetIcon');
     const customIcon = game.settings.get(MODULE_ID, 'customIcon');
     const colorTheme = game.settings.get(MODULE_ID, 'colorTheme');
+    const iconShape = game.settings.get(MODULE_ID, 'iconShape');
+    const iconColor = game.settings.get(MODULE_ID, 'iconColor');
+
     let fullColor = game.settings.get(MODULE_ID, 'fullColor');
     let emptyColor = '#444444'; // Default for custom
 
@@ -412,7 +459,22 @@ function injectFearCustomization(html) {
             // It's a FontAwesome Class
             const newClasses = iconClass.split(' ').filter(c => c.trim() !== '');
             icon.classList.add(...newClasses, 'fear-tracker-plus-custom');
-            icon.style.color = '#ffffff'; // Force white icons for all themes
+
+            // Icon Color Application
+            if (iconColor && iconColor !== '#ffffff') {
+                // Check if it's a gradient
+                if (iconColor.includes('gradient')) {
+                    icon.style.background = iconColor;
+                    icon.style.webkitBackgroundClip = 'text';
+                    icon.style.backgroundClip = 'text';
+                    icon.style.webkitTextFillColor = 'transparent';
+                    icon.style.color = 'transparent';
+                } else {
+                    icon.style.color = iconColor;
+                }
+            } else {
+                icon.style.color = '#ffffff'; // Default White
+            }
         }
 
         // 3. Remove System Styling (Module Overrides)
@@ -472,6 +534,12 @@ function injectFearCustomization(html) {
                 }
             }
         }
+        // 5. Handle Shape
+        let borderRadius = '50%';
+        if (iconShape === 'rounded') borderRadius = '20%';
+        else if (iconShape === 'square') borderRadius = '0%';
+
+        icon.style.borderRadius = borderRadius;
     });
 
     // Remove legacy container class if present
