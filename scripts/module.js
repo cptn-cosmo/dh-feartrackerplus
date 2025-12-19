@@ -82,15 +82,7 @@ Hooks.once('init', () => {
         onChange: refreshFearTracker
     });
 
-    game.settings.register(MODULE_ID, 'trackerLocked', {
-        name: 'Lock Tracker Position',
-        hint: 'Prevents the tracker from being dragged.',
-        scope: 'client',
-        config: true, // User can toggle in settings too
-        type: Boolean,
-        default: false,
-        onChange: refreshFearTracker
-    });
+    // Removed trackerLocked setting as requested
 
     game.settings.register(MODULE_ID, 'colorTheme', {
         name: 'Color Theme',
@@ -189,6 +181,27 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
             fullColorGroup.hide();
             emptyColorGroup.hide();
         }
+
+        // Inject Scale Reset Button if not present
+        if (scaleGroup.length && !scaleGroup.find('.scale-reset-btn').length) {
+            const input = scaleGroup.find('input[type="range"]');
+            const rangeValue = scaleGroup.find('.range-value');
+
+            if (input.length) {
+                const resetBtn = $(`<button type="button" class="scale-reset-btn" title="Reset to 1.0x" style="flex: 0 0 30px; margin-left: 5px;"><i class="fas fa-undo"></i></button>`);
+                resetBtn.on('click', () => {
+                    input.val(1.0).trigger('change');
+                    if (rangeValue.length) rangeValue.text("1.0");
+                });
+
+                // Append after the range value display usually found in Foundry sliders
+                if (rangeValue.length) {
+                    rangeValue.after(resetBtn);
+                } else {
+                    input.after(resetBtn);
+                }
+            }
+        }
     };
 
     iconTypeSelect.on('change', updateVisibility);
@@ -239,68 +252,7 @@ function injectFearCustomization(html) {
     const container = html instanceof HTMLElement ? html : html[0];
     const fearContainer = container.querySelector('#resource-fear');
 
-    // ---------------------------------------------------------
-    // Window Lock Button Injection
-    // ---------------------------------------------------------
-    const windowApp = container.closest('.window-app');
-    if (windowApp) {
-        const header = windowApp.querySelector('.window-header');
-        if (header) {
-            // Check if button already exists
-            if (!header.querySelector('.fear-tracker-lock')) {
-                const lockBtn = document.createElement('a');
-                lockBtn.classList.add('control', 'fear-tracker-lock');
-                lockBtn.setAttribute('aria-label', 'Lock Position');
-                // Insert before close button
-                const closeBtn = header.querySelector('.control.close');
-                if (closeBtn) {
-                    header.insertBefore(lockBtn, closeBtn);
-                } else {
-                    header.appendChild(lockBtn);
-                }
-
-                // Click Listener
-                lockBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    const current = game.settings.get(MODULE_ID, 'trackerLocked');
-                    await game.settings.set(MODULE_ID, 'trackerLocked', !current);
-                });
-            }
-
-            // Update State
-            const isLocked = game.settings.get(MODULE_ID, 'trackerLocked');
-            const lockBtn = header.querySelector('.fear-tracker-lock');
-            if (lockBtn) {
-                // Update Icon
-                lockBtn.innerHTML = isLocked ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-lock-open"></i>';
-                lockBtn.title = isLocked ? 'Unlock Position' : 'Lock Position';
-            }
-
-            // Handle Drag Disabling
-            if (isLocked) {
-                header.classList.add('locked');
-                header.style.pointerEvents = 'none'; // CRITICAL: This stops the drag
-
-                // But we must allow clicks on our buttons (Close, Lock, etc)
-                const controls = header.querySelectorAll('.control');
-                controls.forEach(c => c.style.pointerEvents = 'auto');
-
-                // Visual feedback
-                const windowTitle = header.querySelector('.window-title');
-                if (windowTitle) windowTitle.style.cursor = 'default';
-
-            } else {
-                header.classList.remove('locked');
-                header.style.pointerEvents = '';
-                const controls = header.querySelectorAll('.control');
-                controls.forEach(c => c.style.pointerEvents = '');
-
-                const windowTitle = header.querySelector('.window-title');
-                if (windowTitle) windowTitle.style.cursor = 'grab';
-            }
-        }
-    }
-
+    // Removed Window Lock Injection logic
 
     if (!fearContainer) return;
 
@@ -316,8 +268,10 @@ function injectFearCustomization(html) {
     let themeStart = null;
     let themeEnd = null;
 
-    if (colorTheme !== 'custom' && colorTheme !== 'foundryborne') {
+    // New Foundryborne Gradient: #020026 -> #C701FC
+    if (colorTheme !== 'custom') {
         const themes = {
+            'foundryborne': { start: '#020026', end: '#C701FC', empty: '#1a002b' }, // Custom requested gradient
             'hope-fear': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
             'blood-moon': { start: '#5c0000', end: '#ff0000', empty: '#2a0000' },
             'ethereal': { start: '#00FFFF', end: '#0000FF', empty: '#002a33' },
@@ -328,6 +282,7 @@ function injectFearCustomization(html) {
             themeStart = theme.start;
             themeEnd = theme.end;
             emptyColor = theme.empty;
+            // Fallback fullColor for non-interpolation uses if any
             fullColor = theme.start;
         }
     }
@@ -355,9 +310,6 @@ function injectFearCustomization(html) {
     const icons = fearContainer.querySelectorAll('i');
     const totalIcons = icons.length;
 
-    // Use System Colors if Foundryborne
-    const useSystemColors = (colorTheme === 'foundryborne');
-
     icons.forEach((icon, index) => {
         // 1. Reset Icon State
         // Remove common FA prefixes just in case
@@ -377,10 +329,7 @@ function injectFearCustomization(html) {
             img.style.width = '60%';
             img.style.height = '60%';
 
-            // If Foundryborne, we probably want to revert to a state where it looks "native".
-            // Since svgs are inserted, default system CSS won't target them.
-            // We'll keep them white for visibility, unless the system hue-rotate handles it.
-            // Let's assume white is safer.
+            // White for visibility on dark backgrounds
             img.style.filter = 'brightness(0) invert(1)';
             img.style.border = 'none';
             img.style.pointerEvents = 'none';
@@ -390,49 +339,33 @@ function injectFearCustomization(html) {
             // It's a FontAwesome Class
             const newClasses = iconClass.split(' ').filter(c => c.trim() !== '');
             icon.classList.add(...newClasses, 'fear-tracker-plus-custom');
-
-            if (!useSystemColors) {
-                icon.style.color = '#ffffff'; // Force white only if NOT using system colors
-            } else {
-                icon.style.color = ''; // Revert to stylesheet default
-            }
+            icon.style.color = '#ffffff'; // Force white icons for all themes
         }
 
-        if (useSystemColors) {
-            // Restore System Styling
-            icon.style.filter = ''; // Allow system CSS hue-rotate
-            icon.style.opacity = ''; // Allow system CSS opacity
-            icon.style.background = ''; // Use system CSS background
+        // 3. Remove System Styling (Module Overrides)
+        // We always override now, even for Foundryborne, to apply the custom gradient
+        icon.style.filter = 'none';
+        icon.style.opacity = '1';
 
-            // Clean up our legacy overrides
-            icon.style.webkitTextFillColor = '';
-            icon.style.backgroundClip = '';
-            icon.style.webkitBackgroundClip = '';
+        icon.style.webkitTextFillColor = 'initial';
+        icon.style.backgroundClip = 'border-box';
+        icon.style.webkitBackgroundClip = 'border-box';
+
+        // 4. Handle Background Color
+        const isInactive = icon.classList.contains('inactive');
+
+        if (isInactive) {
+            icon.style.background = emptyColor;
         } else {
-            // 3. Remove System Styling (Module Overrides)
-            icon.style.filter = 'none';
-            icon.style.opacity = '1';
-
-            icon.style.webkitTextFillColor = 'initial';
-            icon.style.backgroundClip = 'border-box';
-            icon.style.webkitBackgroundClip = 'border-box';
-
-            // 4. Handle Background Color
-            const isInactive = icon.classList.contains('inactive');
-
-            if (isInactive) {
-                icon.style.background = emptyColor;
+            // Active
+            if (themeStart && themeEnd && totalIcons > 1) {
+                // Interpolate
+                const factor = index / (totalIcons - 1);
+                const color = interpolateColor(themeStart, themeEnd, factor);
+                icon.style.background = color;
             } else {
-                // Active
-                if (themeStart && themeEnd && totalIcons > 1) {
-                    // Interpolate
-                    const factor = index / (totalIcons - 1);
-                    const color = interpolateColor(themeStart, themeEnd, factor);
-                    icon.style.background = color;
-                } else {
-                    // Custom or Single Color
-                    icon.style.background = fullColor;
-                }
+                // Custom or Single Color
+                icon.style.background = fullColor;
             }
         }
     });
