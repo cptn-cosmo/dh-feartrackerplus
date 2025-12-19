@@ -238,6 +238,37 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
         iconTypeSelect.on('change', updateVisibility);
         themeSelect.on('change', updateVisibility);
         updateVisibility();
+
+        // Icon Preview Logic
+        const customIconGroup = findGroup('customIcon');
+        if (customIconGroup) {
+            const input = customIconGroup.find(`input[name="${MODULE_ID}.customIcon"]`);
+            if (input.length) {
+                // Create Preview Element
+                const previewSpan = $(`<span class="icon-preview" style="margin-left: 10px; font-size: 1.5em; width: 30px; text-align: center; display: inline-block;"></span>`);
+                const icon = $(`<i></i>`);
+                previewSpan.append(icon);
+
+                // Append to container
+                input.after(previewSpan);
+
+                // Update Function
+                const updatePreview = () => {
+                    const val = input.val();
+                    // Reset classes
+                    icon.attr('class', '');
+                    if (val) {
+                        icon.addClass(val);
+                    }
+                };
+
+                // Listeners
+                input.on('input', updatePreview);
+
+                // Initial update
+                updatePreview();
+            }
+        }
     }
 });
 
