@@ -200,9 +200,14 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
                     const resetBtn = $(`<button type="button" class="scale-reset-btn" title="Reset to 1.0x" style="flex: 0 0 30px; margin-left: 5px;"><i class="fas fa-undo"></i></button>`);
 
                     resetBtn.on('click', () => {
+                        // Crucial: Update the target input (number or range) and trigger change
                         targetInput.val(1.0).trigger('change');
-                        // Retrieve the range input again to update it visually if we targeted the number input
-                        if (input.length) input.val(1.0);
+
+                        // If we are targeting the number input, manually update the range input too if it exists
+                        if (input.length && input[0] !== targetInput[0]) {
+                            input.val(1.0);
+                        }
+
                         if (rangeValue.length) rangeValue.text("1.0");
                     });
 
@@ -298,10 +303,9 @@ function injectFearCustomization(html) {
     let themeStart = null;
     let themeEnd = null;
 
-    // New Foundryborne Gradient: rgba(2, 0, 38, 1) -> rgba(199, 1, 252, 1)
-    if (colorTheme !== 'custom') {
+    // Handle Themes
+    if (colorTheme !== 'custom' && colorTheme !== 'foundryborne') {
         const themes = {
-            'foundryborne': { start: 'rgba(2, 0, 38, 1)', end: 'rgba(199, 1, 252, 1)', empty: '#1a002b' }, // Custom requested gradient
             'hope-fear': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
             'blood-moon': { start: '#5c0000', end: '#ff0000', empty: '#2a0000' },
             'ethereal': { start: '#00FFFF', end: '#0000FF', empty: '#002a33' },
@@ -373,29 +377,34 @@ function injectFearCustomization(html) {
         }
 
         // 3. Remove System Styling (Module Overrides)
-        // We always override now, even for Foundryborne, to apply the custom gradient
-        icon.style.filter = 'none';
-        icon.style.opacity = '1';
+        // Skip this for Foundryborne to keep default system look
+        if (colorTheme !== 'foundryborne') {
+            icon.style.filter = 'none';
+            icon.style.opacity = '1';
 
-        icon.style.webkitTextFillColor = 'initial';
-        icon.style.backgroundClip = 'border-box';
-        icon.style.webkitBackgroundClip = 'border-box';
+            icon.style.webkitTextFillColor = 'initial';
+            icon.style.backgroundClip = 'border-box';
+            icon.style.webkitBackgroundClip = 'border-box';
+        }
 
         // 4. Handle Background Color
         const isInactive = icon.classList.contains('inactive');
 
-        if (isInactive) {
-            icon.style.background = emptyColor;
-        } else {
-            // Active
-            if (themeStart && themeEnd && totalIcons > 1) {
-                // Interpolate
-                const factor = index / (totalIcons - 1);
-                const color = interpolateColor(themeStart, themeEnd, factor);
-                icon.style.background = color;
+        // Skip custom coloring for Foundryborne
+        if (colorTheme !== 'foundryborne') {
+            if (isInactive) {
+                icon.style.background = emptyColor;
             } else {
-                // Custom or Single Color
-                icon.style.background = fullColor;
+                // Active
+                if (themeStart && themeEnd && totalIcons > 1) {
+                    // Interpolate
+                    const factor = index / (totalIcons - 1);
+                    const color = interpolateColor(themeStart, themeEnd, factor);
+                    icon.style.background = color;
+                } else {
+                    // Custom or Single Color
+                    icon.style.background = fullColor;
+                }
             }
         }
     });
