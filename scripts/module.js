@@ -67,6 +67,31 @@ Hooks.once('init', () => {
         onChange: refreshFearTracker
     });
 
+    game.settings.register(MODULE_ID, 'trackerScale', {
+        name: 'Tracker Scale',
+        hint: 'Resize the fear tracker (0.25x to 2.0x).',
+        scope: 'client',
+        config: true,
+        type: Number,
+        range: {
+            min: 0.25,
+            max: 2.0,
+            step: 0.05
+        },
+        default: 1.0,
+        onChange: refreshFearTracker
+    });
+
+    game.settings.register(MODULE_ID, 'trackerLocked', {
+        name: 'Lock Tracker Position',
+        hint: 'Prevents the tracker from being dragged.',
+        scope: 'client',
+        config: true, // User can toggle in settings too
+        type: Boolean,
+        default: false,
+        onChange: refreshFearTracker
+    });
+
     game.settings.register(MODULE_ID, 'colorTheme', {
         name: 'Color Theme',
         hint: 'Choose a color preset or Custom to set your own colors below.',
@@ -74,13 +99,14 @@ Hooks.once('init', () => {
         config: true,
         type: String,
         choices: {
+            'foundryborne': 'Foundryborne (Default)',
             'custom': 'Custom',
             'hope-fear': 'Hope & Fear (Orange to Purple)',
             'blood-moon': 'Blood Moon (Red Gradient)',
             'ethereal': 'Ethereal (Cyan to Blue)',
             'toxic': 'Toxic (Green to Yellow)'
         },
-        default: 'custom',
+        default: 'foundryborne',
         onChange: refreshFearTracker
     });
 
@@ -118,9 +144,21 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
         const theme = themeSelect.val();
 
         // Icon Inputs
-        const presetGroup = $html.find(`select[name="${MODULE_ID}.presetIcon"]`).closest('.form-group');
-        const customIconGroup = $html.find(`input[name="${MODULE_ID}.customIcon"]`).closest('.form-group');
-        const customSvgGroup = $html.find(`input[name="${MODULE_ID}.customSvgPath"]`).closest('.form-group');
+        // Standard data-setting-id
+        let presetGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.presetIcon"]`);
+        let customIconGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.customIcon"]`);
+        let customSvgGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.customSvgPath"]`);
+
+        // Fallback: Find input by name and traverse to form-group
+        if (!presetGroup.length) presetGroup = $html.find(`select[name="${MODULE_ID}.presetIcon"]`).closest('.form-group');
+        if (!customIconGroup.length) customIconGroup = $html.find(`input[name="${MODULE_ID}.customIcon"]`).closest('.form-group');
+
+        // SVG Fallback: Ensure we find it separately because it might be wrapped differently
+        if (!customSvgGroup.length) {
+            const svgInput = $html.find(`input[name="${MODULE_ID}.customSvgPath"]`);
+            // Traverse up to find the closest form-group
+            customSvgGroup = svgInput.closest('.form-group');
+        }
 
         // Reset
         presetGroup.hide();
@@ -136,8 +174,13 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
         }
 
         // Color Inputs
-        const fullColorGroup = $html.find(`input[name="${MODULE_ID}.fullColor"]`).closest('.form-group');
-        const emptyColorGroup = $html.find(`input[name="${MODULE_ID}.emptyColor"]`).closest('.form-group');
+        let fullColorGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.fullColor"]`);
+        let emptyColorGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.emptyColor"]`);
+        let scaleGroup = $html.find(`.form-group[data-setting-id="${MODULE_ID}.trackerScale"]`);
+
+        if (!fullColorGroup.length) fullColorGroup = $html.find(`input[name="${MODULE_ID}.fullColor"]`).closest('.form-group');
+        if (!emptyColorGroup.length) emptyColorGroup = $html.find(`input[name="${MODULE_ID}.emptyColor"]`).closest('.form-group');
+        if (!scaleGroup.length) scaleGroup = $html.find(`input[name="${MODULE_ID}.trackerScale"]`).closest('.form-group');
 
         if (theme === 'custom') {
             fullColorGroup.show();
@@ -196,6 +239,63 @@ function injectFearCustomization(html) {
     const container = html instanceof HTMLElement ? html : html[0];
     const fearContainer = container.querySelector('#resource-fear');
 
+    // ---------------------------------------------------------
+    // Window Lock Button Injection
+    // ---------------------------------------------------------
+    // Find the window element (parent of content)
+    // ApplicationV2 structure: window > window-content > html
+    const windowApp = container.closest('.window-app');
+    if (windowApp) {
+        const header = windowApp.querySelector('.window-header');
+        if (header) {
+            // Check if button already exists
+            if (!header.querySelector('.fear-tracker-lock')) {
+                const lockBtn = document.createElement('a');
+                lockBtn.classList.add('control', 'fear-tracker-lock');
+                lockBtn.setAttribute('aria-label', 'Lock Position');
+                // Insert before close button (usually last)
+                const closeBtn = header.querySelector('.control.close');
+                if (closeBtn) {
+                    header.insertBefore(lockBtn, closeBtn);
+                } else {
+                    header.appendChild(lockBtn);
+                }
+
+                // Click Listener
+                lockBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const current = game.settings.get(MODULE_ID, 'trackerLocked');
+                    await game.settings.set(MODULE_ID, 'trackerLocked', !current);
+                });
+            }
+
+            // Update State
+            const isLocked = game.settings.get(MODULE_ID, 'trackerLocked');
+            const lockBtn = header.querySelector('.fear-tracker-lock');
+            if (lockBtn) {
+                // Update Icon
+                lockBtn.innerHTML = isLocked ? '<i class="fas fa-lock"></i>' : '<i class="fas fa-lock-open"></i>';
+                lockBtn.title = isLocked ? 'Unlock Position' : 'Lock Position';
+            }
+
+            // Handle Drag Disabling
+            // We target the window-title usually, or the drag handler
+            const windowTitle = header.querySelector('.window-title');
+            if (windowTitle) {
+                if (isLocked) {
+                    windowTitle.style.pointerEvents = 'none'; // Disables drag start
+                    windowTitle.style.cursor = 'default';
+                    header.classList.add('locked');
+                } else {
+                    windowTitle.style.pointerEvents = 'all';
+                    windowTitle.style.cursor = 'grab';
+                    header.classList.remove('locked');
+                }
+            }
+        }
+    }
+
+
     if (!fearContainer) return;
 
     // Get Settings
@@ -212,6 +312,7 @@ function injectFearCustomization(html) {
 
     if (colorTheme !== 'custom') {
         const themes = {
+            'foundryborne': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
             'hope-fear': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
             'blood-moon': { start: '#5c0000', end: '#ff0000', empty: '#2a0000' },
             'ethereal': { start: '#00FFFF', end: '#0000FF', empty: '#002a33' },
@@ -227,8 +328,16 @@ function injectFearCustomization(html) {
         }
     }
 
+    // Apply Scaling
+    const scale = game.settings.get(MODULE_ID, 'trackerScale');
+    if (scale !== 1.0) {
+        fearContainer.style.zoom = scale;
+    } else {
+        fearContainer.style.zoom = 'normal';
+    }
+
     // Determine Icon Class
-    let iconClass = 'fa-skull';
+    let iconClass = 'fas fa-skull';
     if (iconType === 'preset') {
         iconClass = presetIcon;
     } else if (iconType === 'custom') {
