@@ -216,16 +216,41 @@ function injectFearCustomization(html) {
         iconClass = customIcon;
     }
 
+    const isSVG = iconClass.includes('.svg');
     const icons = fearContainer.querySelectorAll('i');
     const totalIcons = icons.length;
 
     icons.forEach((icon, index) => {
-        // 1. Replace Icons
-        icon.classList.remove('fa-skull');
-        const newClasses = iconClass.split(' ').filter(c => c.trim() !== '');
-        icon.classList.add(...newClasses, 'fear-tracker-plus-custom');
+        // 1. Reset Icon State
+        // Remove common FA prefixes just in case
+        icon.classList.remove('fa-skull', 'fas', 'far', 'fal', 'fad', 'fab');
 
-        // 2. Remove System Styling
+        // Remove old SVG img if present from previous renders
+        const oldImg = icon.querySelector('img.fear-tracker-icon');
+        if (oldImg) oldImg.remove();
+
+        // 2. Handle Icon Content
+        if (isSVG) {
+            // It's an SVG (Capybara or other)
+            // Create IMG element
+            const img = document.createElement('img');
+            img.src = iconClass;
+            img.classList.add('fear-tracker-icon');
+            img.style.width = '60%'; // Appropriate size within the bead
+            img.style.height = '60%';
+            img.style.filter = 'brightness(0) invert(1)'; // Make it white
+            img.style.border = 'none';
+            img.style.pointerEvents = 'none'; // Click through to parent if needed
+
+            icon.appendChild(img);
+        } else {
+            // It's a FontAwesome Class
+            const newClasses = iconClass.split(' ').filter(c => c.trim() !== '');
+            icon.classList.add(...newClasses, 'fear-tracker-plus-custom');
+            icon.style.color = '#ffffff'; // Icons are white
+        }
+
+        // 3. Remove System Styling
         icon.style.filter = 'none'; // Strips hue-rotate AND system grayscale for inactive
         icon.style.opacity = '1'; // Reset opacity
 
@@ -233,9 +258,8 @@ function injectFearCustomization(html) {
         icon.style.webkitTextFillColor = 'initial';
         icon.style.backgroundClip = 'border-box';
         icon.style.webkitBackgroundClip = 'border-box';
-        icon.style.color = '#ffffff'; // Icons are white
 
-        // 3. Handle Background Color
+        // 4. Handle Background Color
         const isInactive = icon.classList.contains('inactive');
 
         if (isInactive) {
