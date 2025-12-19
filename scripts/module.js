@@ -92,11 +92,11 @@ Hooks.once('init', () => {
         type: String,
         choices: {
             'foundryborne': 'Foundryborne (Default)',
-            'custom': 'Custom',
             'hope-fear': 'Hope & Fear (Orange to Purple)',
             'blood-moon': 'Blood Moon (Red Gradient)',
             'ethereal': 'Ethereal (Cyan to Blue)',
-            'toxic': 'Toxic (Green to Yellow)'
+            'toxic': 'Toxic (Green to Yellow)',
+            'custom': 'Custom'
         },
         default: 'foundryborne',
         onChange: refreshFearTracker
