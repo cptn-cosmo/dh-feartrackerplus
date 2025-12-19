@@ -1,15 +1,55 @@
-.fear-tracker-plus-gradient {
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    display: inline-block;
-    /* Required for gradient text */
+/* CSS Variable Defaults */
+:root {
+    --dh-fear-bg: transparent;
+    --dh-fear-bg-size: cover;
+    --dh-fear-bg-pos: center;
+    --dh-fear-icon-color: #ffffff;
+    --dh-fear-border-radius: 50%;
 }
 
-/* Ensure the icon keeps its size and doesn't collapse */
+/* Base Icon Styling */
 #resource-fear i.fear-tracker-plus-custom {
+    position: relative;
+    z-index: 1;
     transition: all 0.5s ease;
+    border-radius: var(--dh-fear-border-radius);
+
+    /* Background Shape Styling (Applied to container) - REMOVED */
+
+    /* Ensure icon is centered */
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
 }
+
+/* Scoped Override for Custom Themes */
+/* Scoped Override for Custom Themes */
+#resource-fear i.fear-tracker-plus-custom.dh-fear-plus-bg-override {
+    background: var(--dh-fear-bg) !important;
+    background-size: var(--dh-fear-bg-size) !important;
+    background-position: var(--dh-fear-bg-pos) !important;
+    background-repeat: no-repeat !important;
+}
+
+/* Icon Glyph Styling (Applied to ::before which contains the character) */
+/* Icon Glyph Styling (Applied to ::before which contains the character) */
+#resource-fear i.fear-tracker-plus-custom.dh-fear-plus-icon-override::before {
+    /* Apply Gradient or Solid Color to Text */
+    background: var(--dh-fear-icon-color);
+    background-size: var(--dh-fear-icon-bg-size, cover);
+    background-position: var(--dh-fear-icon-bg-pos, center);
+    background-repeat: no-repeat;
+
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+
+    /* Ensure it overlays correctly */
+    display: inline-block;
+}
+
+
 
 @keyframes fearPulse {
     0% {
@@ -29,10 +69,5 @@
 }
 
 #resource-fear i.fear-tracker-plus-animate {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    vertical-align: middle;
-    transform-origin: center center;
     animation: fearPulse 2s infinite ease-in-out;
 }

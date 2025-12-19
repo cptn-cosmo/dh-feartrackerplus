@@ -95,7 +95,7 @@ Hooks.once('init', () => {
         scope: 'client',
         config: true,
         type: String,
-        default: '#ff0000',
+        default: '#000000',
         onChange: refreshFearTracker
     });
 
@@ -390,22 +390,30 @@ function injectFearCustomization(html) {
     let themeEnd = null;
 
     // Handle Themes
-    if (colorTheme !== 'custom' && colorTheme !== 'foundryborne') {
+    if (colorTheme !== 'custom') { // Removed check for 'foundryborne' to treat it as a preset
         const themes = {
+            'foundryborne': { start: null, end: null, empty: 'transparent' },
             'hope-fear': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
             'blood-moon': { start: '#5c0000', end: '#ff0000', empty: '#2a0000' },
             'ethereal': { start: '#00FFFF', end: '#0000FF', empty: '#002a33' },
             'toxic': { start: '#00FF00', end: '#FFFF00', empty: '#003300' }
         };
+
         const theme = themes[colorTheme];
         if (theme) {
+            // Standard Interpolated Preset
             themeStart = theme.start;
             themeEnd = theme.end;
-            emptyColor = theme.empty;
-            // Fallback fullColor for non-interpolation uses if any
             fullColor = theme.start;
+
+            emptyColor = theme.empty;
         }
+
+
+
+        emptyColor = theme.empty;
     }
+
 
     // Apply Scaling
     const scale = game.settings.get(MODULE_ID, 'trackerScale');
@@ -433,7 +441,9 @@ function injectFearCustomization(html) {
     icons.forEach((icon, index) => {
         // 1. Reset Icon State
         // Remove common FA prefixes just in case
-        icon.classList.remove('fa-skull', 'fas', 'far', 'fal', 'fad', 'fab');
+        icon.classList.remove('fa-skull', 'fas', 'far', 'fal', 'fad', 'fab', 'dh-fear-plus-bg-override', 'dh-fear-plus-icon-override');
+
+        const isInactive = icon.classList.contains('inactive');
 
         // Remove old SVG img if present from previous renders
         const oldImg = icon.querySelector('img.fear-tracker-icon');
@@ -460,90 +470,122 @@ function injectFearCustomization(html) {
             const newClasses = iconClass.split(' ').filter(c => c.trim() !== '');
             icon.classList.add(...newClasses, 'fear-tracker-plus-custom');
 
-            // Icon Color Application
-            if (iconColor && iconColor !== '#ffffff') {
-                // Check if it's a gradient
-                if (iconColor.includes('gradient')) {
-                    icon.style.background = iconColor;
-                    icon.style.webkitBackgroundClip = 'text';
-                    icon.style.backgroundClip = 'text';
-                    icon.style.webkitTextFillColor = 'transparent';
-                    icon.style.color = 'transparent';
-                } else {
-                    icon.style.color = iconColor;
-                }
-            } else {
-                icon.style.color = '#ffffff'; // Default White
-            }
         }
 
         // 3. Remove System Styling (Module Overrides)
-        // Skip this for Foundryborne to keep default system look
+        // Skip this for Foundryborne to keep default system look (filters/brightness)
+        // UPDATE: We now WANT to override Foundryborne to apply our custom gradient, BUT we want to keep its filters!
         if (colorTheme !== 'foundryborne') {
             icon.style.filter = 'none';
             icon.style.opacity = '1';
-
-            icon.style.webkitTextFillColor = 'initial';
-            icon.style.backgroundClip = 'border-box';
-            icon.style.webkitBackgroundClip = 'border-box';
         }
 
-        // 4. Handle Background Color
-        const isInactive = icon.classList.contains('inactive');
 
-        // Skip custom coloring for Foundryborne
-        if (colorTheme !== 'foundryborne') {
-            if (isInactive) {
-                icon.style.background = emptyColor;
-                icon.style.backgroundSize = 'cover'; // Reset size for empty
-                icon.style.backgroundPosition = 'center'; // Reset pos for empty
-            } else {
-                // Active
-                if (themeStart && themeEnd && totalIcons > 1) {
-                    // Interpolate (Preset Themes)
-                    const factor = index / (totalIcons - 1);
-                    const color = interpolateColor(themeStart, themeEnd, factor);
-                    icon.style.background = color;
-                    icon.style.backgroundSize = 'cover';
-                    icon.style.backgroundPosition = 'center';
-                } else {
-                    // Custom Theme
-                    // Check if fullColor appears to be a gradient
-                    const isGradient = fullColor.includes('gradient');
 
-                    if (isGradient && totalIcons > 0) {
-                        icon.style.background = fullColor;
-                        icon.style.backgroundSize = `${totalIcons * 100}% 100%`;
+        // CSS Variables to be applied
+        let cssBg = 'transparent';
+        let cssBgSize = 'cover';
+        let cssBgPos = 'center';
+        let cssIconColor = '#ffffff';
+        let cssIconBgSize = 'cover';
+        let cssIconBgPos = 'center';
 
-                        // Calculate position
-                        // Leftmost (index 0) = 0%
-                        // Rightmost (index total-1) = 100%
-                        let pos = 0;
-                        if (totalIcons > 1) {
-                            pos = (index / (totalIcons - 1)) * 100;
-                        }
+        // 4. Handle Icon Color (Glyph)
+        if (!isSVG) {
+            if (iconColor && iconColor !== '#ffffff') {
+                cssIconColor = iconColor;
 
-                        icon.style.backgroundPosition = `${pos}% 0%`;
-                        icon.style.backgroundAttachment = 'local'; // Ensure it sticks to the specific element config if needed, though default is usually fine.
-                    } else {
-                        // Solid Color
-                        icon.style.background = fullColor;
-                        icon.style.backgroundSize = 'cover';
-                        icon.style.backgroundPosition = 'center';
+                // Spanning Logic for Icon Gradient
+                if (iconColor.includes('gradient') && totalIcons > 0) {
+                    cssIconBgSize = `${totalIcons * 100}% 100%`;
+                    let pos = 0;
+                    if (totalIcons > 1) {
+                        pos = (index / (totalIcons - 1)) * 100;
                     }
+                    cssIconBgPos = `${pos}% 0%`;
+                }
+            } else {
+                cssIconColor = '#ffffff';
+            }
+        }
+
+        // 5. Handle Background Color (Shape)
+        // Enable custom coloring for ALL themes now, but toggle classes selectively for Hybrid "Foundryborne"
+
+        // Always apply icon override for gradients
+        icon.classList.add('dh-fear-plus-icon-override');
+
+        if (colorTheme !== 'foundryborne') {
+            // Apply background override for all OTHER themes
+            icon.classList.add('dh-fear-plus-bg-override');
+        }
+        if (isInactive) {
+            cssBg = emptyColor;
+            cssBgSize = 'cover';
+            cssBgPos = 'center';
+        } else {
+            // Active
+            if (themeStart && themeEnd && totalIcons > 1) {
+                // Interpolate (Preset Themes)
+                const factor = index / (totalIcons - 1);
+                const color = interpolateColor(themeStart, themeEnd, factor);
+
+                // Apply Theme Color to BACKGROUND only
+                cssBg = color;
+                cssBgSize = 'cover';
+                cssBgPos = 'center';
+            } else {
+                // Custom Theme
+                // Check if fullColor appears to be a gradient
+                const isGradient = fullColor.includes('gradient');
+
+                if (isGradient && totalIcons > 0) {
+                    cssBg = fullColor;
+                    cssBgSize = `${totalIcons * 100}% 100%`;
+
+                    // Calculate position
+                    let pos = 0;
+                    if (totalIcons > 1) {
+                        pos = (index / (totalIcons - 1)) * 100;
+                    }
+                    cssBgPos = `${pos}% 0%`;
+                } else {
+                    // Solid Color
+                    cssBg = fullColor;
+                    cssBgSize = 'cover';
+                    cssBgPos = 'center';
                 }
             }
         }
-        // 5. Handle Shape
+        // }
+
+        // 6. Handle Shape
         let borderRadius = '50%';
         if (iconShape === 'rounded') borderRadius = '20%';
         else if (iconShape === 'square') borderRadius = '0%';
 
-        icon.style.borderRadius = borderRadius;
+        // 7. Apply CSS Variables
+        icon.style.setProperty('--dh-fear-bg', cssBg);
+        icon.style.setProperty('--dh-fear-bg-size', cssBgSize);
+        icon.style.setProperty('--dh-fear-bg-pos', cssBgPos);
+        icon.style.setProperty('--dh-fear-icon-color', cssIconColor);
+        icon.style.setProperty('--dh-fear-icon-bg-size', cssIconBgSize);
+        icon.style.setProperty('--dh-fear-icon-bg-pos', cssIconBgPos);
+        icon.style.setProperty('--dh-fear-border-radius', borderRadius);
+
+        // Clean up direct styles that might interfere/confuse
+        icon.style.background = '';
+        icon.style.color = '';
+        icon.style.webkitBackgroundClip = '';
+        icon.style.backgroundClip = '';
+        icon.style.webkitTextFillColor = '';
+        icon.style.borderRadius = '';
     });
 
     // Remove legacy container class if present
     fearContainer.classList.remove('fear-tracker-plus-container-gradient');
+
+    // Always clear container background to ensure our icon colors are visible and not obscured by system or previous styles
     fearContainer.style.background = 'none';
 
     // Max Fear Animation
@@ -554,15 +596,25 @@ function injectFearCustomization(html) {
 
         // If totalIcons > 0 and activeIcons === totalIcons, apply animation
         if (totalIcons > 0 && activeIcons === totalIcons) {
+            // Prevent system "Blue" overrides
+            fearContainer.classList.remove('complete', 'max', 'full');
+
             icons.forEach(icon => {
                 icon.classList.add('fear-tracker-plus-animate');
+                // Force filter reset to ensure our animation works and system color doesn't override
+                icon.style.filter = 'none';
             });
         } else {
             icons.forEach(icon => {
                 icon.classList.remove('fear-tracker-plus-animate');
+                // Restore filter if we touched it (only relevant if not custom theme)
+                if (colorTheme === 'foundryborne') {
+                    icon.style.filter = '';
+                }
             });
         }
     } else {
         icons.forEach(icon => icon.classList.remove('fear-tracker-plus-animate'));
     }
 }
+
