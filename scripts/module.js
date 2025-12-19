@@ -198,11 +198,11 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
 
                 if (targetInput.length) {
                     const resetBtn = $(`<button type="button" class="scale-reset-btn" title="Reset to 1.0x" style="flex: 0 0 30px; margin-left: 5px;"><i class="fas fa-undo"></i></button>`);
-                    
+
                     resetBtn.on('click', () => {
                         targetInput.val(1.0).trigger('change');
                         // Retrieve the range input again to update it visually if we targeted the number input
-                        if (input.length) input.val(1.0); 
+                        if (input.length) input.val(1.0);
                         if (rangeValue.length) rangeValue.text("1.0");
                     });
 
@@ -237,8 +237,8 @@ function interpolateColor(color1, color2, factor) {
     if (arguments.length < 3) return color1;
 
     let result = "#";
-    const c1 = hexToRgb(color1);
-    const c2 = hexToRgb(color2);
+    const c1 = parseColor(color1);
+    const c2 = parseColor(color2);
 
     for (let i = 0; i < 3; i++) {
         const val = Math.round(c1[i] + factor * (c2[i] - c1[i]));
@@ -249,19 +249,33 @@ function interpolateColor(color1, color2, factor) {
     return result;
 }
 
-function hexToRgb(hex) {
-    // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-    const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-    hex = hex.replace(shorthandRegex, function (m, r, g, b) {
-        return r + r + g + g + b + b;
-    });
 
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16)
-    ] : [0, 0, 0];
+function parseColor(color) {
+    if (!color) return [0, 0, 0];
+
+    // Handle RGB/RGBA
+    if (color.startsWith('rgb')) {
+        const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (match) {
+            return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
+        }
+    }
+
+    // Handle Hex
+    if (color.startsWith('#')) {
+        let hex = color.slice(1);
+        if (hex.length === 3) {
+            hex = hex.split('').map(char => char + char).join('');
+        }
+        const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [
+            parseInt(result[1], 16),
+            parseInt(result[2], 16),
+            parseInt(result[3], 16)
+        ] : [0, 0, 0];
+    }
+
+    return [0, 0, 0];
 }
 
 function injectFearCustomization(html) {
@@ -284,10 +298,10 @@ function injectFearCustomization(html) {
     let themeStart = null;
     let themeEnd = null;
 
-    // New Foundryborne Gradient: #020026 -> #C701FC
+    // New Foundryborne Gradient: rgba(2, 0, 38, 1) -> rgba(199, 1, 252, 1)
     if (colorTheme !== 'custom') {
         const themes = {
-            'foundryborne': { start: '#020026', end: '#C701FC', empty: '#1a002b' }, // Custom requested gradient
+            'foundryborne': { start: 'rgba(2, 0, 38, 1)', end: 'rgba(199, 1, 252, 1)', empty: '#1a002b' }, // Custom requested gradient
             'hope-fear': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
             'blood-moon': { start: '#5c0000', end: '#ff0000', empty: '#2a0000' },
             'ethereal': { start: '#00FFFF', end: '#0000FF', empty: '#002a33' },
