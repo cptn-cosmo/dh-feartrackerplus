@@ -38,7 +38,8 @@ Hooks.once('init', () => {
             'fa-spider': 'Spider',
             'fa-cloud-meatball': 'Cloud Meatball',
             'fa-biohazard': 'Biohazard',
-            'fa-radiation': 'Radiation'
+            'fa-radiation': 'Radiation',
+            'systems/daggerheart/assets/icons/documents/actors/capybara.svg': 'Capybara (Foundry)'
         },
         default: 'fa-skull',
         onChange: refreshFearTracker
@@ -135,22 +136,44 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
 
 /**
  * Handle Fear Tracker Rendering
- * We hook into the renderFearTracker or whatever the ApplicationV2 is called ideally.
- * But looking at the system code, it uses `FearTracker` class.
- * Since it's an ApplicationV2, `renderApplication` hook might work, or `renderFearTracker` if the system supports it.
- * The system code shows: export default class FearTracker extends HandlebarsApplicationMixin(ApplicationV2)
- * The template ID is systems/daggerheart/templates/ui/fearTracker.hbs
- * We can hook 'renderFearTracker'.
  */
 Hooks.on('renderFearTracker', (app, html, data) => {
     injectFearCustomization(html);
 });
 
-// Also try to catch it if it's strictly ApplicationV2 and name might differ slightly in some contexts, but 'renderFearTracker' should work given the class name.
-// Just in case the class name in the system is minified or different at runtime, we can check the element.
+// Helper to interpolate colors
+function interpolateColor(color1, color2, factor) {
+    if (arguments.length < 3) return color1;
+
+    let result = "#";
+    const c1 = hexToRgb(color1);
+    const c2 = hexToRgb(color2);
+
+    for (let i = 0; i < 3; i++) {
+        const val = Math.round(c1[i] + factor * (c2[i] - c1[i]));
+        let hex = val.toString(16);
+        if (hex.length < 2) hex = "0" + hex;
+        result += hex;
+    }
+    return result;
+}
+
+function hexToRgb(hex) {
+    // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+    const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    hex = hex.replace(shorthandRegex, function (m, r, g, b) {
+        return r + r + g + g + b + b;
+    });
+
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16)
+    ] : [0, 0, 0];
+}
 
 function injectFearCustomization(html) {
-    // The HTML passed might be the raw jQuery object or HTMLElement
     const container = html instanceof HTMLElement ? html : html[0];
     const fearContainer = container.querySelector('#resource-fear');
 
@@ -164,43 +187,29 @@ function injectFearCustomization(html) {
     let fullColor = game.settings.get(MODULE_ID, 'fullColor');
     let emptyColor = game.settings.get(MODULE_ID, 'emptyColor');
 
-    // Apply Theme Colors
+    // Theme Data for Interpolation
+    let themeStart = null;
+    let themeEnd = null;
+
     if (colorTheme !== 'custom') {
         const themes = {
-            'hope-fear': { full: 'linear-gradient(to right, #FFC107, #512DA8)', empty: '#2e1c4a' },
-            'blood-moon': { full: 'linear-gradient(to top, #5c0000, #ff0000)', empty: '#2a0000' },
-            'ethereal': { full: 'linear-gradient(to right, #00FFFF, #0000FF)', empty: '#002a33' },
-            'toxic': { full: 'linear-gradient(to bottom, #00FF00, #FFFF00)', empty: '#003300' }
+            'hope-fear': { start: '#FFC107', end: '#512DA8', empty: '#2e1c4a' },
+            'blood-moon': { start: '#5c0000', end: '#ff0000', empty: '#2a0000' },
+            'ethereal': { start: '#00FFFF', end: '#0000FF', empty: '#002a33' },
+            'toxic': { start: '#00FF00', end: '#FFFF00', empty: '#003300' }
         };
         const theme = themes[colorTheme];
         if (theme) {
-            fullColor = theme.full;
+            themeStart = theme.start;
+            themeEnd = theme.end;
             emptyColor = theme.empty;
+            // Fallback fullColor for non-interpolation uses if any
+            fullColor = theme.start;
         }
     }
 
-    // Apply Container Gradient if needed (for continuous gradient)
-    // If it's a gradient, we apply it to the container to span across.
-    const isGradient = fullColor.toLowerCase().includes('gradient');
-
-    if (isGradient) {
-        fearContainer.style.background = fullColor;
-        fearContainer.style.webkitBackgroundClip = 'text';
-        fearContainer.style.backgroundClip = 'text';
-        fearContainer.style.webkitTextFillColor = 'transparent';
-        fearContainer.style.color = 'transparent';
-        fearContainer.classList.add('fear-tracker-plus-container-gradient');
-    } else {
-        fearContainer.style.background = 'none';
-        fearContainer.style.webkitBackgroundClip = 'initial';
-        fearContainer.style.backgroundClip = 'initial';
-        fearContainer.style.webkitTextFillColor = 'initial';
-        fearContainer.style.color = 'initial';
-        fearContainer.classList.remove('fear-tracker-plus-container-gradient');
-    }
-
     // Determine Icon Class
-    let iconClass = 'fa-skull'; // fallback
+    let iconClass = 'fa-skull';
     if (iconType === 'preset') {
         iconClass = presetIcon;
     } else {
@@ -208,50 +217,45 @@ function injectFearCustomization(html) {
     }
 
     const icons = fearContainer.querySelectorAll('i');
+    const totalIcons = icons.length;
 
-    icons.forEach(icon => {
-        // 1. Replace Icon
-        // Remove existing FA classes that define the icon. 
-        // We know 'fas' and 'fa-skull' are likely there.
-        // Safest is to remove 'fa-skull' and add our own.
-        // If the user provided a full string like "fa-solid fa-dragon", we should handle that.
-
-        // Remove the default system icon class specific to fear logic if we can identify it, 
-        // but 'fa-skull' is hardcoded in the generic template.
+    icons.forEach((icon, index) => {
+        // 1. Replace Icons
         icon.classList.remove('fa-skull');
-
-        // Add new classes
-        // split by space to handle multiple classes in custom string
         const newClasses = iconClass.split(' ').filter(c => c.trim() !== '');
         icon.classList.add(...newClasses, 'fear-tracker-plus-custom');
 
+        // 2. Remove System Styling
+        icon.style.filter = 'none'; // Strips hue-rotate AND system grayscale for inactive
+        icon.style.opacity = '1'; // Reset opacity
 
-        // 2. Handle Colors (Override System Hue Rotate)
-        // System style: style="filter: hue-rotate(calc(({{this}}/{{../max}})*75deg))"
-        // We must override this. resetting filter is enough.
-        icon.style.filter = 'none';
+        // Reset container-style gradient hacks
+        icon.style.webkitTextFillColor = 'initial';
+        icon.style.backgroundClip = 'border-box';
+        icon.style.webkitBackgroundClip = 'border-box';
+        icon.style.color = '#ffffff'; // Icons are white
 
-        // Check state
+        // 3. Handle Background Color
         const isInactive = icon.classList.contains('inactive');
 
-        if (isGradient) {
-            if (isInactive) {
-                // Inactive icons should NOT show the gradient.
-                // We force them to emptyColor by resetting clip behavior via webkitTextFillColor
-                icon.style.webkitTextFillColor = emptyColor;
-                icon.style.color = emptyColor;
-                icon.style.background = 'none';
-            } else {
-                // Active icons: Transparent to show parent background.
-                icon.style.webkitTextFillColor = 'transparent';
-                icon.style.color = 'transparent';
-                icon.style.background = 'none';
-            }
+        if (isInactive) {
+            icon.style.background = emptyColor;
         } else {
-            // Solid Colors
-            icon.style.webkitTextFillColor = 'initial';
-            icon.style.background = 'none';
-            icon.style.color = isInactive ? emptyColor : fullColor;
+            // Active
+            if (themeStart && themeEnd && totalIcons > 1) {
+                // Interpolate
+                const factor = index / (totalIcons - 1);
+                const color = interpolateColor(themeStart, themeEnd, factor);
+                icon.style.background = color;
+            } else {
+                // Custom or Single Color
+                // If it's a gradient string (Custom mode), use it as background
+                icon.style.background = fullColor;
+            }
         }
     });
+
+    // Remove legacy container class if present
+    fearContainer.classList.remove('fear-tracker-plus-container-gradient');
+    fearContainer.style.background = 'none';
 }
