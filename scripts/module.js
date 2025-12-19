@@ -16,7 +16,8 @@ Hooks.once('init', () => {
         type: String,
         choices: {
             'preset': 'Preset List',
-            'custom': 'Custom FontAwesome Class'
+            'custom': 'Custom FontAwesome Class',
+            'custom-svg': 'Custom SVG File'
         },
         default: 'preset',
         onChange: refreshFearTracker
@@ -52,6 +53,17 @@ Hooks.once('init', () => {
         config: true,
         type: String,
         default: 'fa-solid fa-dragon',
+        onChange: refreshFearTracker
+    });
+
+    game.settings.register(MODULE_ID, 'customSvgPath', {
+        name: 'Custom SVG File',
+        hint: 'Select a custom SVG file for the fear icon.',
+        scope: 'client',
+        config: true,
+        type: String,
+        default: '',
+        filePicker: 'image',
         onChange: refreshFearTracker
     });
 
@@ -108,13 +120,19 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
         // Icon Inputs
         const presetGroup = $html.find(`select[name="${MODULE_ID}.presetIcon"]`).closest('.form-group');
         const customIconGroup = $html.find(`input[name="${MODULE_ID}.customIcon"]`).closest('.form-group');
+        const customSvgGroup = $html.find(`input[name="${MODULE_ID}.customSvgPath"]`).closest('.form-group');
+
+        // Reset
+        presetGroup.hide();
+        customIconGroup.hide();
+        customSvgGroup.hide();
 
         if (iconType === 'preset') {
             presetGroup.show();
-            customIconGroup.hide();
-        } else {
-            presetGroup.hide();
+        } else if (iconType === 'custom') {
             customIconGroup.show();
+        } else if (iconType === 'custom-svg') {
+            customSvgGroup.show();
         }
 
         // Color Inputs
@@ -213,11 +231,14 @@ function injectFearCustomization(html) {
     let iconClass = 'fa-skull';
     if (iconType === 'preset') {
         iconClass = presetIcon;
-    } else {
+    } else if (iconType === 'custom') {
         iconClass = customIcon;
+    } else if (iconType === 'custom-svg') {
+        const svgPath = game.settings.get(MODULE_ID, 'customSvgPath');
+        iconClass = svgPath || 'icons/svg/mystery-man.svg'; // Fallback
     }
 
-    const isSVG = iconClass.includes('.svg');
+    const isSVG = iconClass.includes('.svg') || iconType === 'custom-svg';
     const icons = fearContainer.querySelectorAll('i');
     const totalIcons = icons.length;
 
