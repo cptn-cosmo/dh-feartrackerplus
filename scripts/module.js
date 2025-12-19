@@ -200,14 +200,17 @@ Hooks.on('renderSettingsConfig', (app, html, data) => {
                     const resetBtn = $(`<button type="button" class="scale-reset-btn" title="Reset to 1.0x" style="flex: 0 0 30px; margin-left: 5px;"><i class="fas fa-undo"></i></button>`);
 
                     resetBtn.on('click', () => {
-                        // Crucial: Update the target input (number or range) and trigger change
-                        targetInput.val(1.0).trigger('change');
-
-                        // If we are targeting the number input, manually update the range input too if it exists
-                        if (input.length && input[0] !== targetInput[0]) {
-                            input.val(1.0);
+                        // 1. Update Number Input (if exists) - this is usually the one with the name attribute
+                        if (numberInput.length) {
+                            numberInput.val(1.0).trigger('change');
                         }
 
+                        // 2. Update Range Input - this triggers the visual slider movement
+                        if (input.length) {
+                            input.val(1.0).trigger('input').trigger('change');
+                        }
+
+                        // 3. Manually update the text display just in case
                         if (rangeValue.length) rangeValue.text("1.0");
                     });
 
