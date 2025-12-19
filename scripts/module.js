@@ -29,19 +29,19 @@ Hooks.once('init', () => {
         config: true,
         type: String,
         choices: {
-            'fa-skull': 'Skull (Default)',
-            'fa-ghost': 'Ghost',
-            'fa-fire': 'Fire',
-            'fa-heart-broken': 'Broken Heart',
-            'fa-dizzy': 'Dizzy Face',
-            'fa-book-dead': 'Book of Dead',
-            'fa-spider': 'Spider',
-            'fa-cloud-meatball': 'Cloud Meatball',
-            'fa-biohazard': 'Biohazard',
-            'fa-radiation': 'Radiation',
+            'fas fa-skull': 'Skull (Default)',
+            'fas fa-ghost': 'Ghost',
+            'fas fa-fire': 'Fire',
+            'fas fa-heart-broken': 'Broken Heart',
+            'fas fa-dizzy': 'Dizzy Face',
+            'fas fa-book-dead': 'Book of Dead',
+            'fas fa-spider': 'Spider',
+            'fas fa-cloud-meatball': 'Cloud Meatball',
+            'fas fa-biohazard': 'Biohazard',
+            'fas fa-radiation': 'Radiation',
             'systems/daggerheart/assets/icons/documents/actors/capybara.svg': 'Capybara (Foundry)'
         },
-        default: 'fa-skull',
+        default: 'fas fa-skull',
         onChange: refreshFearTracker
     });
 
