@@ -1,56 +1,263 @@
-/* CSS Variable Defaults */
-:root {
-    --dh-fear-bg: transparent;
-    --dh-fear-bg-size: cover;
-    --dh-fear-bg-pos: center;
-    --dh-fear-icon-color: #ffffff;
-    --dh-fear-border-radius: 50%;
+/* Hide Default Daggerheart Fear Tracker Window */
+#resources {
+    display: none !important;
 }
 
-/* Base Icon Styling */
-#resource-fear i.fear-tracker-plus-custom {
-    position: relative;
-    z-index: 1;
-    transition: all 0.5s ease;
-    border-radius: var(--dh-fear-border-radius);
+/* Also hide the inner content just in case */
+#resource-fear {
+    display: none !important;
+}
 
-    /* Background Shape Styling (Applied to container) - REMOVED */
+/* Try to hide parent container if it creates a ghost box */
+/* Assuming standard system classes, might need adjustment */
+/* .daggerheart-resources:has(#resource-fear) {
+    /* We can't easily hide the parent without risking hiding siblings */
+/* But we can try to minimize the impact of the child */
+/* } */
 
-    /* Ensure icon is centered */
-    display: inline-flex;
+/* New Fear Tracker Window Styles */
+.dh-feartrackerplus-window {
+    position: fixed;
+    pointer-events: none;
+    /* Allow clicks to pass through transparent areas */
+    z-index: 100;
+}
+
+.fear-tracker-window {
+    pointer-events: all;
+    background: rgba(20, 20, 25, 0.25);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: none;
+    transition: all 0.3s ease;
+    min-width: 50px;
+    /* Allow narrower width for vertical column */
+    color: #eee;
+    font-family: 'Inter', 'Roboto', sans-serif;
+    overflow: visible;
+}
+
+.fear-tracker-window:hover {
+    background: rgba(20, 20, 25, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Narrow Mode (Vertical Layout) */
+.fear-tracker-window.narrow {
+    padding: 12px;
+    /* Increased to accommodate shadows */
+}
+
+/* Auto-expand on hover to show controls */
+/* Only if NOT locked, OR if force-expand is active (Ctrl key) */
+.fear-tracker-window.narrow:not(.locked):hover,
+.fear-tracker-window.narrow.force-expand {
+    min-width: 90px !important;
+}
+
+.fear-tracker-window.narrow .fear-label {
+    display: none !important;
+    /* Hide title text */
+}
+
+.fear-tracker-window.narrow .tracker-header {
     justify-content: center;
+    gap: 0;
+}
+
+/* Stack header controls vertically or ensure they fit */
+.fear-tracker-window.narrow .header-controls {
+    gap: 4px;
+}
+
+/* Force vertical stack for content in narrow mode */
+.fear-tracker-window.narrow .fear-visuals {
+    flex-direction: column;
+}
+
+/* Constrain tokens to single column even when window expands on hover */
+.fear-tracker-window.narrow .tokens-container {
+    flex-direction: column;
+    max-width: none;
+    /* Remove fixed constraint */
+}
+
+.fear-tracker-window.minimized {
+    min-width: fit-content;
+    padding: 8px 12px;
+}
+
+.fear-tracker-window.minimized .fear-visuals {
+    gap: 0;
+}
+
+.fear-tracker-window.minimized:hover .fear-visuals {
+    gap: 8px;
+}
+
+/* Header and Drag Handle */
+.tracker-header {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    transition: all 0.2s ease;
 }
 
-/* Scoped Override for Custom Themes */
-/* Scoped Override for Custom Themes */
-#resource-fear i.fear-tracker-plus-custom.dh-fear-plus-bg-override {
-    background: var(--dh-fear-bg) !important;
-    background-size: var(--dh-fear-bg-size) !important;
-    background-position: var(--dh-fear-bg-pos) !important;
-    background-repeat: no-repeat !important;
+/* Show header on hover if unlocked, OR if force-expanded via Ctrl */
+.fear-tracker-window:not(.locked):hover .tracker-header,
+.fear-tracker-window.force-expand .tracker-header {
+    opacity: 1;
+    height: 24px;
+    margin-bottom: 4px;
 }
 
-/* Icon Glyph Styling (Applied to ::before which contains the character) */
-/* Icon Glyph Styling (Applied to ::before which contains the character) */
-#resource-fear i.fear-tracker-plus-custom.dh-fear-plus-icon-override::before {
-    /* Apply Gradient or Solid Color to Text */
-    background: var(--dh-fear-icon-color);
-    background-size: var(--dh-fear-icon-bg-size, cover);
-    background-position: var(--dh-fear-icon-bg-pos, center);
-    background-repeat: no-repeat;
-
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    color: transparent !important;
-
-    /* Ensure it overlays correctly */
-    display: inline-block;
+.drag-handle {
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 2px 8px;
 }
 
+.fear-tracker-window.locked .drag-handle {
+    display: none;
+}
 
+.header-controls {
+    display: flex;
+    gap: 8px;
+    padding-right: 4px;
+}
 
+.control-btn {
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.control-btn:hover {
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* Content */
+.fear-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.fear-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.6);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    margin-right: auto;
+    margin-left: 8px;
+    display: none;
+}
+
+.fear-tracker-window:hover .fear-label {
+    display: block;
+}
+
+.fear-visuals {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: gap 0.3s ease;
+    width: 100%;
+}
+
+.tokens-container {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    flex: 1;
+}
+
+/* Tokens */
+.fear-token {
+    width: var(--fear-token-size, 32px);
+    height: var(--fear-token-size, 32px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #444;
+    /* Default inactive */
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.fear-token.circle {
+    border-radius: 50%;
+}
+
+.fear-token.rounded {
+    border-radius: 8px;
+}
+
+.fear-token.square {
+    border-radius: 0;
+}
+
+.fear-token.active {
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.fear-token i {
+    font-size: calc(var(--fear-token-size, 32px) * 0.5);
+    color: #fff;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+    transition: transform 0.3s ease;
+}
+
+.fear-token img.fear-icon-img {
+    width: 70%;
+    height: 70%;
+    object-fit: contain;
+    filter: brightness(0) invert(1) drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+}
+
+/* Progress Bar */
+.fear-bar-container {
+    width: 200px;
+    /* Base width, window is resizable so this is flexible in context */
+    height: 24px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.fear-bar-track {
+    width: 100%;
+    height: 100%;
+}
+
+.fear-bar-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.5s ease-out, background 0.3s ease;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
 @keyframes fearPulse {
     0% {
         transform: scale(1);
@@ -58,8 +265,8 @@
     }
 
     50% {
-        transform: scale(1.1);
-        filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.5));
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.6));
     }
 
     100% {
@@ -68,6 +275,102 @@
     }
 }
 
-#resource-fear i.fear-tracker-plus-animate {
+.fear-pulse {
     animation: fearPulse 2s infinite ease-in-out;
+}
+
+@keyframes maxFearPulseBorder {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 20, 60, 0);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    50% {
+        box-shadow: 0 0 20px 0 rgba(220, 20, 60, 0.5);
+        border-color: rgba(220, 20, 60, 0.8);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 20, 60, 0);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+}
+
+.fear-tracker-window.max-fear {
+    animation: maxFearPulseBorder 2s infinite ease-in-out;
+}
+
+/* Controls */
+.value-control {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 12px;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.fear-tracker-window:hover .value-control {
+    opacity: 1;
+}
+
+.value-control:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.value-control.plus:hover {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+}
+
+.value-control.minus:hover {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+
+.fear-value {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: monospace;
+}
+
+/* Resize Handle */
+.resize-handle {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    cursor: nwse-resize;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 10px;
+    padding: 2px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.fear-tracker-window:hover .resize-handle {
+    opacity: 1;
+}
+
+.fear-tracker-window.locked .resize-handle {
+    display: none;
+}
+
+/* Constrain context menu width to avoid excessive whitespace */
+#context-menu {
+    min-width: unset;
+    width: fit-content;
+    max-width: 200px;
+}
+
+#context-menu .context-items .context-item {
+    padding-right: 12px;
 }

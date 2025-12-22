@@ -1,0 +1,66 @@
+<div class="fear-tracker-window {{#if isMinimized}}minimized{{/if}} {{#if isLocked}}locked{{/if}}">
+    <div class="tracker-header">
+        <div class="drag-handle" data-tooltip="Drag to move">
+            <i class="fa-solid fa-grip-vertical"></i>
+        </div>
+        {{#unless isMinimized}}
+        <div class="fear-label">FEAR</div>
+        {{/unless}}
+        <div class="header-controls">
+            <a class="control-btn" data-action="toggleLock"
+                data-tooltip="{{#if isLocked}}Unlock Window{{else}}Lock Window{{/if}}">
+                <i class="fa-solid {{#if isLocked}}fa-lock{{else}}fa-lock-open{{/if}}"></i>
+            </a>
+        </div>
+    </div>
+
+
+    <div class="fear-content">
+
+
+
+        <div class="fear-visuals">
+            {{#if isGM}}
+            {{#if showControlButtons}}
+            <a class="value-control minus" data-action="decreaseFear">
+                <i class="fa-solid fa-minus"></i>
+            </a>
+            {{/if}}
+            {{/if}}
+
+            {{#if useBar}}
+            <div class="fear-bar-container">
+                <div class="fear-bar-track">
+                    <div class="fear-bar-fill" style="{{barStyle}}"></div>
+                </div>
+            </div>
+            {{else}}
+            <div class="tokens-container">
+                {{#each fearTokens as |token|}}
+                <div class="fear-token {{../iconShape}} {{#if token.active}}active{{else}}inactive{{/if}}"
+                    data-index="{{token.index}}" style="{{token.style}}">
+                    {{{token.icon}}}
+                </div>
+                {{/each}}
+            </div>
+            {{/if}}
+
+            {{#if isGM}}
+            {{#if showControlButtons}}
+            <a class="value-control plus" data-action="increaseFear">
+                <i class="fa-solid fa-plus"></i>
+            </a>
+            {{/if}}
+            {{/if}}
+        </div>
+
+        {{#if showFearValue}}
+        <div class="fear-value">
+            {{currentFear}} / {{maxFear}}
+        </div>
+        {{/if}}
+    </div>
+    <div class="resize-handle" data-tooltip="Drag to resize">
+        <i class="fa-solid fa-chevron-right" style="transform: rotate(45deg);"></i>
+    </div>
+</div>
