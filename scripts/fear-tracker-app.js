@@ -261,7 +261,7 @@ export class FearTrackerApp extends HandlebarsApplicationMixin(ApplicationV2) {
             const fullColor = game.settings.get("dh-feartrackerplus", "fullColor");
             if (fullColor.includes('gradient')) {
                 const posPercent = total > 1 ? (index / (total - 1)) * 100 : 0;
-                return `background: ${fullColor} no-repeat; background-size: ${total * 100}% 100%; background-position: ${posPercent}% 0%;`;
+                return `background: ${fullColor} no-repeat; background-size: ${total * 100}% 100%; background-position: ${posPercent}% 0%; background-origin: border-box;`;
             }
             color = fullColor;
         } else {
@@ -278,7 +278,7 @@ export class FearTrackerApp extends HandlebarsApplicationMixin(ApplicationV2) {
                 // Prevent wrapping artifacts with no-repeat.
                 // Handle single token case to avoid /0 NaN.
                 const posPercent = total > 1 ? (index / (total - 1)) * 100 : 0;
-                return `background: ${gradient} no-repeat; background-size: ${total * 100}% 100%; background-position: ${posPercent}% 0%;`;
+                return `background: ${gradient} no-repeat; background-size: ${total * 100}% 100%; background-position: ${posPercent}% 0%; background-origin: border-box;`;
             }
         }
 
