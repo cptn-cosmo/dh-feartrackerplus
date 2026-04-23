@@ -1,10 +1,10 @@
 {
     "id": "dh-feartrackerplus",
     "title": "Daggerheart Fear Tracker Plus",
-    "version": "2.0.1",
+    "version": "2.1.0",
     "compatibility": {
         "minimum": "13",
-        "verified": "13"
+        "verified": "14"
     },
     "authors": [
         {
@@ -30,8 +30,8 @@
     "styles": [
         "styles/module.css"
     ],
-    "url": "https://github.com/cptn-cosmo/dh-feartrackerplus",
-    "manifest": "https://github.com/cptn-cosmo/dh-feartrackerplus/releases/latest/download/module.json",
-    "download": "https://github.com/cptn-cosmo/dh-feartrackerplus/releases/download/2.0.1/dh-feartrackerplus.zip",
+    "url": "https://git.geeks.gay/cosmo/dh-feartrackerplus",
+    "manifest": "https://git.geeks.gay/cosmo/dh-feartrackerplus/raw/branch/main/module.json",
+    "download": "https://git.geeks.gay/cosmo/dh-feartrackerplus/releases/download/2.1.0/dh-feartrackerplus.zip",
     "description": "Customizes the Fear Tracker for Daggerheart."
 }
